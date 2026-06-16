@@ -53,6 +53,7 @@
     confirmModalCard:   document.getElementById("confirm-modal-card"),
     confirmCancelBtn:   document.getElementById("confirm-cancel-btn"),
     confirmStartBtn:    document.getElementById("confirm-start-btn"),
+    confirmModalTotalQuestions: document.getElementById("confirm-modal-total-questions"),
     // Quiz
     quizTimer:       document.getElementById("quiz-timer"),
     quizExitBtn:     document.getElementById("quiz-exit-btn"),
@@ -254,6 +255,22 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  // Convert simple markdown (**bold** and *italic*) to HTML after escaping
+  function formatMarkdown(text) {
+    if (typeof text !== "string") return "";
+    return escapeHtml(text)
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>");
+  }
+
+  // Convert only simple italic (*italic*) to HTML after escaping, disabling bold
+  function formatItalicOnly(text) {
+    if (typeof text !== "string") return "";
+    return escapeHtml(text)
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>");
   }
 
   // Title Case + normalisasi spasi: "nabil  ihsan" -> "Nabil Ihsan"
@@ -623,7 +640,7 @@
 
     // Nomor & teks soal
     els.questionNumber.textContent = `Soal ${currentQuestionIndex + 1}`;
-    els.questionText.textContent = q.question;
+    els.questionText.innerHTML = formatItalicOnly(q.question);
 
     // Render opsi
     els.optionsContainer.innerHTML = "";
@@ -640,7 +657,7 @@
       btn.innerHTML =
         `<span class="option-letter shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-border text-ink/70 font-extrabold text-sm transition-all duration-200">` +
         `${OPTION_LETTERS[idx]}</span>` +
-        `<span class="option-text flex-1 text-sm sm:text-base text-ink/80 font-medium leading-snug">${escapeHtml(opt)}</span>`;
+        `<span class="option-text flex-1 text-sm sm:text-base text-ink/80 font-medium leading-snug">${formatItalicOnly(opt)}</span>`;
 
       btn.addEventListener("click", () => selectAnswer(idx));
       els.optionsContainer.appendChild(btn);
@@ -674,7 +691,7 @@
         }
       });
 
-      els.explanationText.textContent = q.explanation;
+      els.explanationText.innerHTML = formatMarkdown(q.explanation);
       els.explanationBox.classList.remove("hidden");
 
       const isLast = currentQuestionIndex === quizData.length - 1;
@@ -734,7 +751,7 @@
     }
 
     // Tampilkan penjelasan
-    els.explanationText.textContent = q.explanation;
+    els.explanationText.innerHTML = formatMarkdown(q.explanation);
     els.explanationBox.classList.remove("hidden");
     void els.explanationBox.offsetWidth; // re-trigger animasi
     els.explanationBox.classList.add("slide-in");
@@ -1046,6 +1063,11 @@
 
   const currentTheme = localStorage.getItem("kuis-theme") || "light";
   applyTheme(currentTheme);
+
+  // Update total questions in instruction modal dynamically
+  if (els.confirmModalTotalQuestions && typeof quizData !== "undefined") {
+    els.confirmModalTotalQuestions.textContent = `${quizData.length} Soal Pilihan Ganda`;
+  }
 
   // Tampilan awal: prioritas — hasil kuis (refresh) > kuis yang tertunda (anti-refresh) > session > login
   const pendingResult = loadResultState();

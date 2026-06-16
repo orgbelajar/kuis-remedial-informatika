@@ -160,7 +160,7 @@
   </head>
 
   <body
-    class="font-sans bg-bg text-ink min-h-screen flex items-center justify-center p-4 sm:p-6"
+    class="font-sans bg-bg text-ink min-h-screen flex flex-col items-center justify-center p-4 pt-16 sm:p-6"
   >
     <!-- ===================== THEME SWITCHER ===================== -->
     <div class="fixed top-3 right-3 sm:top-4 sm:right-4 z-50 bg-card border border-border p-1 rounded-full shadow-soft flex items-center gap-0.5 animate-fadeIn">
@@ -218,7 +218,7 @@
         <img
           src="logo-sekolah.svg"
           alt="Logo SMP Muhammadiyah 1 Tangerang"
-          class="w-24 h-24 sm:w-28 sm:h-28 object-contain mx-auto mb-5"
+          class="w-32 h-32 sm:w-32 sm:h-32 object-contain mx-auto mb-5"
           data-school-logo
           onerror="
             this.style.display = 'none';
@@ -281,7 +281,7 @@
           <img
             src="logo-sekolah.svg"
             alt="Logo Sekolah"
-            class="w-16 h-16 object-contain shrink-0"
+            class="w-32 h-32 object-contain shrink-0"
             data-school-logo
             onerror="
               this.style.display = 'none';
@@ -395,25 +395,25 @@
         class="hidden bg-card rounded-3xl border border-border shadow-soft p-5 sm:p-6"
       >
         <!-- Quiz Header -->
-        <div class="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-border">
-          <div class="flex items-center gap-2">
+        <div class="flex items-center justify-between gap-1.5 sm:gap-3 mb-4 pb-3 border-b border-border">
+          <div class="flex items-center gap-1.5 sm:gap-2">
             <button
               id="quiz-exit-btn"
               type="button"
-              class="w-8 h-8 rounded-full bg-bg hover:bg-border text-ink/60 flex items-center justify-center transition-all duration-200 active:scale-90"
+              class="w-8 h-8 rounded-full bg-bg hover:bg-border text-ink/60 flex items-center justify-center transition-all duration-200 active:scale-90 shrink-0"
               title="Keluar Kuis"
             >
               <span class="text-sm font-bold leading-none">✕</span>
             </button>
-            <span id="progress-text" class="text-xs font-bold text-ink/50 uppercase tracking-wider">Soal 1 dari 20</span>
+            <span id="progress-text" class="text-[11px] sm:text-xs font-bold text-ink/50 uppercase tracking-wider whitespace-nowrap">Soal 1 dari 20</span>
           </div>
-          <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <span
               id="quiz-timer"
-              class="text-xs font-bold text-ink/60 bg-bg px-2.5 py-1.5 rounded-full tabular-nums"
+              class="text-[11px] sm:text-xs font-bold text-ink/60 bg-bg px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full tabular-nums whitespace-nowrap"
               >⏱ 00:00</span
             >
-            <span id="score-text" class="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1.5 rounded-full"
+            <span id="score-text" class="text-[11px] sm:text-xs font-bold text-primary bg-primary/10 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full whitespace-nowrap"
               >Skor: 0</span
             >
           </div>
@@ -459,7 +459,7 @@
           </p>
           <p
             id="explanation-text"
-            class="text-xs sm:text-sm text-ink/75 leading-relaxed"
+            class="text-xs sm:text-sm text-ink/75 leading-relaxed text-justify break-words"
           ></p>
         </div>
 
@@ -481,7 +481,7 @@
         <img
           src="logo-sekolah.svg"
           alt="Logo Sekolah"
-          class="w-24 h-24 object-contain mx-auto mb-4"
+          class="w-32 h-32 object-contain mx-auto mb-1"
           data-school-logo
           onerror="
             this.style.display = 'none';
@@ -563,7 +563,7 @@
         <div class="text-4xl mb-3">📝</div>
         <h3 class="text-xl font-extrabold text-ink mb-2">Petunjuk Remedial</h3>
         <p class="text-ink/70 text-sm sm:text-base mb-6 leading-relaxed text-left">
-          Soal remedial berjumlah <strong>20 Soal Pilihan Ganda</strong>. Pastikan membaca soal dan menjawab dengan teliti. Tidak ada batas waktu pengerjaan setiap soal. Kamu dipersilahkan mencari jawaban dari internet, berdiskusi dengan teman, maupun dengan orang tua.
+          Soal remedial UAS berjumlah <strong id="confirm-modal-total-questions">20 Soal Pilihan Ganda</strong>. Pastikan membaca soal dan menjawab dengan teliti. Tidak ada batas waktu pengerjaan setiap soal. Kamu dipersilahkan mencari jawaban dari internet, berdiskusi dengan teman, maupun dengan orang tua.
         </p>
         <div class="flex gap-3">
           <button
