@@ -1,6 +1,6 @@
 // ============================================================
 //  LOGIKA KUIS REMEDIAL INFORMATIKA KELAS 8
-//  Phase 2: Authentication + Session + WhatsApp integration
+//  Phase 4: Timer, Anti-Refresh, Expandable History, Duration
 // ------------------------------------------------------------
 //  Tergantung pada: quizData (dari quiz-data.js)
 // ============================================================
@@ -9,9 +9,10 @@
   "use strict";
 
   // ---------- Constants ----------
-  const STORAGE_KEY = "remedialSession";
-  const PASSING_GRADE = 70;          // KKM
-  const WA_NUMBER = "6281412397588"; // Kak Nabil
+  const STORAGE_KEY = "remedialSession";      // localStorage (profil + history permanen)
+  const QUIZ_STATE_KEY = "remedialQuizState"; // sessionStorage (anti-refresh)
+  const PASSING_GRADE = 70;                   // KKM
+  const WA_NUMBER = "6281412397588";           // Kak Nabil
   const OPTION_LETTERS = ["A", "B", "C", "D"];
 
   // ---------- Quiz State ----------
@@ -19,6 +20,10 @@
   let score = 0;                  // Jumlah jawaban benar (0..totalQuestions)
   const answers = [];             // Menyimpan indeks pilihan siswa per soal (untuk review)
   let isAnswered = false;         // Mencegah mengubah jawaban setelah memilih
+
+  // ---------- Timer State (Phase 4) ----------
+  let quizStartTime = 0;          // Date.now() saat kuis dimulai/dilanjutkan
+  let timerInterval = null;       // referensi setInterval
 
   // ---------- DOM References ----------
   const screens = {
@@ -47,11 +52,8 @@
     confirmModalCard:   document.getElementById("confirm-modal-card"),
     confirmCancelBtn:   document.getElementById("confirm-cancel-btn"),
     confirmStartBtn:    document.getElementById("confirm-start-btn"),
-    evalModal:          document.getElementById("eval-modal"),
-    evalModalCard:      document.getElementById("eval-modal-card"),
-    evalList:           document.getElementById("eval-list"),
-    evalCloseBtn:       document.getElementById("eval-close-btn"),
     // Quiz
+    quizTimer:       document.getElementById("quiz-timer"),
     nextBtn:         document.getElementById("next-btn"),
     progressText:    document.getElementById("progress-text"),
     scoreText:       document.getElementById("score-text"),
@@ -68,12 +70,13 @@
     finalScore:            document.getElementById("final-score"),
     correctCount:          document.getElementById("correct-count"),
     wrongCount:            document.getElementById("wrong-count"),
+    resultDuration:        document.getElementById("result-duration"),
     reviewContainer:       document.getElementById("review-container"),
     backToDashboardBtn:    document.getElementById("back-to-dashboard-btn"),
   };
 
   // ============================================================
-  //  DATA LAYER (localStorage)
+  //  DATA LAYER (localStorage) — session permanen
   // ============================================================
 
   // Baca & validasi session. Return null kalau tidak ada / rusak.
@@ -86,13 +89,17 @@
       if (typeof data !== "object" || data === null) return null;
       if (typeof data.name !== "string" || data.name.trim() === "") return null;
       if (!Array.isArray(data.history)) return null;
-      // Sanitasi tiap entri history
+      // Sanitasi tiap entri history (dengan fallback defaults untuk data lama)
       data.history = data.history
         .filter((h) => h && typeof h === "object")
         .map((h) => ({
           attempt: Number(h.attempt) || 0,
-          score: clampScore(Number(h.score)),
+          score: clampScore(Number(safeNum(h.score))),
           date: typeof h.date === "string" ? h.date : "",
+          duration: typeof h.duration === "number" && Number.isFinite(h.duration) ? Math.max(0, Math.round(h.duration)) : null,
+          correctCount: typeof h.correctCount === "number" && Number.isFinite(h.correctCount) ? Math.round(h.correctCount) : null,
+          wrongCount: typeof h.wrongCount === "number" && Number.isFinite(h.wrongCount) ? Math.round(h.wrongCount) : null,
+          wrongQuestions: Array.isArray(h.wrongQuestions) ? h.wrongQuestions : null,
           answers: Array.isArray(h.answers) ? h.answers : null,
         }));
       // bestScore selalu di-recompute dari history (self-healing)
@@ -125,6 +132,12 @@
     return Math.max(0, Math.min(100, Math.round(n)));
   }
 
+  // Konversi ke number aman (handle null/undefined/string)
+  function safeNum(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   // Tanggal & Jam format DD-MM-YYYY HH:MM (Indonesia, leading zero)
   function todayID() {
     const d = new Date();
@@ -134,6 +147,54 @@
     const hours = String(d.getHours()).padStart(2, "0");
     const minutes = String(d.getMinutes()).padStart(2, "0");
     return `${day}-${month}-${year} ${hours}:${minutes}`;
+  }
+
+  // ============================================================
+  //  DATA LAYER (sessionStorage) — anti-refresh
+  // ============================================================
+
+  // Simpan state kuis ke sessionStorage (dipanggil setelah tiap jawaban)
+  function saveQuizState() {
+    try {
+      const state = {
+        currentQuestionIndex: currentQuestionIndex,
+        score: score,
+        answers: [...answers],
+        quizStartTime: quizStartTime,
+      };
+      sessionStorage.setItem(QUIZ_STATE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("Tidak dapat menyimpan quiz state:", e);
+    }
+  }
+
+  // Baca & validasi state kuis dari sessionStorage
+  function loadQuizState() {
+    try {
+      const raw = sessionStorage.getItem(QUIZ_STATE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (typeof data !== "object" || data === null) return null;
+      if (!Array.isArray(data.answers)) return null;
+      if (typeof data.quizStartTime !== "number" || !Number.isFinite(data.quizStartTime)) return null;
+      return {
+        currentQuestionIndex: Math.max(0, Math.round(Number(data.currentQuestionIndex) || 0)),
+        score: Math.max(0, Math.round(Number(data.score) || 0)),
+        answers: data.answers,
+        quizStartTime: data.quizStartTime,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Hapus state kuis dari sessionStorage
+  function clearQuizState() {
+    try {
+      sessionStorage.removeItem(QUIZ_STATE_KEY);
+    } catch (e) {
+      /* abaikan */
+    }
   }
 
   // ============================================================
@@ -160,6 +221,44 @@
       .join(" ");
   }
 
+  // Format durasi MM:SS dari milidetik (untuk display live & result)
+  function formatTimer(ms) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  // Format durasi ramah pengguna dari detik: "2 menit 15 detik"
+  function formatDurationHuman(seconds) {
+    if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) return "N/A";
+    const total = Math.round(seconds);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    const parts = [];
+    if (m > 0) parts.push(`${m} menit`);
+    parts.push(`${s} detik`);
+    return parts.join(" ");
+  }
+
+  // Bangun array soal salah dari jawaban siswa: [{no, selected, correct}]
+  function buildWrongQuestions(answersArr) {
+    if (!Array.isArray(answersArr)) return [];
+    const wrong = [];
+    quizData.forEach((q, i) => {
+      const userAns = answersArr[i];
+      const correctIdx = q.correctAnswerIndex;
+      if (userAns !== correctIdx) {
+        wrong.push({
+          no: i + 1,
+          selected: (userAns !== undefined && userAns !== null) ? OPTION_LETTERS[userAns] : "-",
+          correct: OPTION_LETTERS[correctIdx],
+        });
+      }
+    });
+    return wrong;
+  }
+
   // ============================================================
   //  SCREEN NAVIGATION
   // ============================================================
@@ -176,6 +275,33 @@
     target.classList.add("fade-in");
     // Scroll ke atas tiap ganti layar
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ============================================================
+  //  TIMER (Phase 4)
+  // ============================================================
+
+  // Mulai penghitung waktu. Pakai quizStartTime yang sudah ada (untuk resume).
+  function startTimer() {
+    stopTimer(); // pastikan tidak ada interval ganda
+    if (!quizStartTime) quizStartTime = Date.now();
+    updateTimerDisplay(); // tampilkan segera
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+  }
+
+  // Hentikan penghitung waktu
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  // Update tampilan timer di quiz header (MM:SS)
+  function updateTimerDisplay() {
+    if (!els.quizTimer) return;
+    const elapsed = Date.now() - quizStartTime;
+    els.quizTimer.textContent = `⏱ ${formatTimer(elapsed)}`;
   }
 
   // ============================================================
@@ -262,7 +388,7 @@
         "inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700";
     }
 
-    renderHistory(session);
+    renderHistoryExpandable(session);
 
     // Tombol aksi dinamis
     if (hasPassed) {
@@ -281,36 +407,106 @@
     showScreen("dashboard");
   }
 
-  function renderHistory(session) {
+  // Render riwayat dengan toggle-expandable inline (menggantikan eval modal).
+  // Setiap percobaan punya baris utama (klik untuk toggle) + panel detail.
+  function renderHistoryExpandable(session) {
     if (!session.history || session.history.length === 0) {
       els.historyList.innerHTML =
         '<li class="text-sm text-gray-400 italic text-center py-2">Belum ada percobaan</li>';
       return;
     }
+
     // Tampilkan terbaru di atas
-    const items = session.history
-      .slice()
-      .reverse()
-      .map((h) => {
-        const passed = h.score >= PASSING_GRADE;
-        const color = passed ? "text-green-600" : "text-gray-700";
-        const badge = passed ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600";
-        const clickableClass = passed ? "" : "cursor-pointer hover:bg-gray-100 hover:shadow-sm transition-all";
-        const hoverTooltip = passed ? "" : 'title="Klik untuk melihat evaluasi kesalahan"';
-        return (
-          `<li class="flex items-center justify-between bg-card rounded-lg px-3 py-2 ${clickableClass}" data-attempt="${h.attempt}" data-passed="${passed}" ${hoverTooltip}>` +
-            `<div class="text-sm">` +
-              `<span class="font-medium text-gray-800">Percobaan ${escapeHtml(String(h.attempt))}</span>` +
-              `<span class="block text-xs text-gray-400">${escapeHtml(h.date || "")}</span>` +
-            `</div>` +
-            `<span class="text-lg font-bold ${color}">${h.score}` +
-              `<span class="text-xs font-normal ${badge} ml-1 px-2 py-0.5 rounded-full">${passed ? "Lulus" : "Belum Lulus"}</span>` +
-            `</span>` +
-          `</li>`
-        );
-      })
-      .join("");
-    els.historyList.innerHTML = items;
+    const reversed = session.history.slice().reverse();
+    els.historyList.innerHTML = "";
+
+    reversed.forEach((h) => {
+      const passed = h.score >= PASSING_GRADE;
+      const color = passed ? "text-green-600" : "text-gray-700";
+      const badge = passed ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600";
+
+      // Tentukan correctCount / wrongCount / wrongQuestions (komputasi ulang dari answers untuk data lama)
+      let correctCount = h.correctCount;
+      let wrongCount = h.wrongCount;
+      let wrongQuestions = h.wrongQuestions;
+      if (correctCount === null || wrongCount === null || wrongQuestions === null) {
+        // Komputasi dari answers[] + quizData (data lama)
+        if (h.answers) {
+          wrongQuestions = buildWrongQuestions(h.answers);
+          wrongCount = wrongQuestions.length;
+          correctCount = (quizData.length) - wrongCount;
+        } else {
+          // Tidak ada answers sama sekali; fallback dari score
+          const total = quizData.length || 1;
+          correctCount = Math.round((h.score / 100) * total);
+          wrongCount = total - correctCount;
+          wrongQuestions = [];
+        }
+      }
+
+      // ---- Baris utama (klik untuk toggle) ----
+      const headerLi = document.createElement("li");
+      headerLi.className =
+        "flex items-center justify-between bg-card rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-100 hover:shadow-sm transition-all select-none";
+      headerLi.dataset.attempt = String(h.attempt);
+      headerLi.dataset.passed = String(passed);
+      headerLi.innerHTML =
+        `<div class="text-sm flex-1 min-w-0">` +
+          `<span class="font-medium text-gray-800">Percobaan ${escapeHtml(String(h.attempt))}</span>` +
+          `<span class="block text-xs text-gray-400">${escapeHtml(h.date || "")}</span>` +
+        `</div>` +
+        `<span class="text-lg font-bold ${color} whitespace-nowrap ml-2">` +
+          `${h.score}` +
+          `<span class="text-xs font-normal ${badge} ml-1 px-2 py-0.5 rounded-full">${passed ? "Lulus" : "Belum"}</span>` +
+        `</span>`;
+
+      // ---- Panel detail (default hidden) ----
+      const detailLi = document.createElement("li");
+      detailLi.className = "detail-panel hidden";
+      detailLi.dataset.attempt = String(h.attempt);
+
+      const durationText = (h.duration !== null && h.duration !== undefined)
+        ? formatDurationHuman(h.duration)
+        : "N/A";
+
+      let detailHTML =
+        `<div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2 text-sm">` +
+          // Ringkasan statistik
+          `<div class="grid grid-cols-3 gap-2 text-center">` +
+            `<div class="bg-green-50 rounded-md p-2"><p class="font-bold text-green-600">${correctCount}</p><p class="text-[10px] text-gray-500">Benar</p></div>` +
+            `<div class="bg-red-50 rounded-md p-2"><p class="font-bold text-red-500">${wrongCount}</p><p class="text-[10px] text-gray-500">Salah</p></div>` +
+            `<div class="bg-blue-50 rounded-md p-2"><p class="font-bold text-blue-600 text-xs leading-tight">${escapeHtml(durationText)}</p><p class="text-[10px] text-gray-500">Waktu</p></div>` +
+          `</div>`;
+
+      if (passed) {
+        // LULUS: ucapan selamat, SEMBUNYIKAN rincian soal salah
+        detailHTML +=
+          `<p class="text-green-700 font-medium text-center text-xs pt-1">🎉 Selamat, kamu telah lulus remedial!</p>`;
+      } else {
+        // BELUM LULUS: tampilkan daftar soal salah
+        if (wrongQuestions && wrongQuestions.length > 0) {
+          detailHTML +=
+            `<p class="text-xs font-semibold text-gray-600 pt-1">Soal yang salah:</p>` +
+            `<div class="space-y-1">` +
+              wrongQuestions.map((wq) =>
+                `<div class="flex items-center gap-2 text-xs bg-red-50 border border-red-100 rounded px-2 py-1">` +
+                  `<span class="font-medium text-gray-700 shrink-0">Soal ${escapeHtml(String(wq.no))}</span>` +
+                  `<span class="text-red-600">Jawabanmu: ${escapeHtml(String(wq.selected))}</span>` +
+                  `<span class="text-gray-400">→</span>` +
+                  `<span class="text-green-600 font-medium">Benar: ${escapeHtml(String(wq.correct))}</span>` +
+                `</div>`
+              ).join("") +
+            `</div>`;
+        } else {
+          detailHTML += `<p class="text-xs text-gray-400 italic text-center pt-1">Tidak ada data rincian jawaban untuk percobaan ini.</p>`;
+        }
+      }
+      detailHTML += `</div>`;
+      detailLi.innerHTML = detailHTML;
+
+      els.historyList.appendChild(headerLi);
+      els.historyList.appendChild(detailLi);
+    });
   }
 
   // ============================================================
@@ -333,6 +529,30 @@
     score = 0;
     answers.length = 0;
     isAnswered = false;
+    clearQuizState();     // bersihkan state lama sebelum mulai baru
+    quizStartTime = Date.now(); // mulai timer baru
+    startTimer();
+    renderQuestion();
+    showScreen("quiz");
+  }
+
+  // Lanjutkan kuis dari sessionStorage (anti-refresh)
+  function resumeQuiz(state) {
+    currentQuestionIndex = state.currentQuestionIndex + 1; // lanjut ke soal berikutnya
+    score = state.score;
+    answers.length = 0;
+    state.answers.forEach((a) => answers.push(a));
+    isAnswered = false;
+    quizStartTime = state.quizStartTime; // pertahankan start time asli
+
+    // Kasus: soal terakhir sudah dijawab sebelum refresh → langsung hasil
+    if (currentQuestionIndex >= quizData.length) {
+      startTimer(); // timer tetap jalan untuk konsistensi, akan distop di showResult
+      showResult();
+      return;
+    }
+
+    startTimer();
     renderQuestion();
     showScreen("quiz");
   }
@@ -437,6 +657,9 @@
     els.nextBtn.classList.remove("hidden");
     void els.nextBtn.offsetWidth;
     els.nextBtn.classList.add("slide-in");
+
+    // ---- Anti-refresh: simpan state ke sessionStorage setelah jawab ----
+    saveQuizState();
   }
 
   // Tambah tanda centang/silang di kanan tombol opsi
@@ -461,6 +684,10 @@
   // ============================================================
 
   function showResult() {
+    // Hentikan timer & catat durasi
+    stopTimer();
+    const duration = Math.max(0, Math.floor((Date.now() - quizStartTime) / 1000));
+
     // Penuhkan progress bar
     els.progressBar.style.width = "100%";
 
@@ -468,8 +695,9 @@
     const correct = score;
     const wrong = total - correct;
     const finalScore = clampScore((correct / (total || 1)) * 100);
+    const wrongQuestions = buildWrongQuestions(answers);
 
-    // ---- Simpan attempt ke session ----
+    // ---- Simpan attempt ke session (dengan field baru Phase 4) ----
     const session = loadSession();
     if (session) {
       const attemptNumber = session.history.length + 1;
@@ -477,10 +705,17 @@
         attempt: attemptNumber,
         score: finalScore,
         date: todayID(),
+        duration: duration,
+        correctCount: correct,
+        wrongCount: wrong,
+        wrongQuestions: wrongQuestions,
         answers: [...answers],
       });
       saveSession(session); // bestScore di-recompute di sini
     }
+
+    // ---- Bersihkan sessionStorage (data sudah permanen di localStorage) ----
+    clearQuizState();
 
     const hasPassed = finalScore >= PASSING_GRADE;
 
@@ -506,6 +741,7 @@
     els.finalScore.textContent = finalScore;
     els.correctCount.textContent = correct;
     els.wrongCount.textContent = wrong;
+    els.resultDuration.textContent = formatTimer(duration * 1000);
 
     // Render review jawaban (dari Phase 1)
     renderReview();
@@ -582,72 +818,6 @@
     }, 300);
   }
 
-  // ---------- Custom Evaluation Modal Handlers ----------
-  function openEvalModal(attemptNumber) {
-    const session = loadSession();
-    if (!session) return;
-    const attempt = session.history.find((h) => h.attempt === attemptNumber);
-    if (!attempt) return;
-
-    // Set title
-    document.getElementById("eval-modal-title").textContent = `Evaluasi Percobaan ${attemptNumber}`;
-
-    const evalList = els.evalList;
-    evalList.innerHTML = "";
-
-    const userAnswers = attempt.answers;
-    if (!userAnswers || !Array.isArray(userAnswers)) {
-      evalList.innerHTML = `<p class="text-sm text-gray-400 italic text-center py-4">Data jawaban untuk percobaan ini tidak tersedia.</p>`;
-    } else {
-      let wrongCount = 0;
-      quizData.forEach((q, i) => {
-        const userAns = userAnswers[i];
-        const correctIdx = q.correctAnswerIndex;
-        if (userAns !== correctIdx) {
-          wrongCount++;
-          const userLetter = (userAns !== undefined && userAns !== null) ? OPTION_LETTERS[userAns] : "-";
-
-          const item = document.createElement("div");
-          item.className = "flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-red-200 bg-red-50 text-xs sm:text-sm leading-snug";
-          item.innerHTML =
-            `<span class="font-medium text-gray-700 whitespace-nowrap mr-2">Soal ${i + 1}</span>` +
-            `<span class="text-red-700 font-medium whitespace-nowrap">Jawabanmu salah <span class="font-normal text-red-500">(Pilihanmu: ${escapeHtml(userLetter)})</span></span>`;
-          evalList.appendChild(item);
-        }
-      });
-
-      if (wrongCount === 0) {
-        evalList.innerHTML = `<p class="text-sm text-green-600 font-medium text-center py-4">Luar biasa! Tidak ada kesalahan pada percobaan ini.</p>`;
-      }
-    }
-
-    // Open modal
-    const modal = els.evalModal;
-    const card = els.evalModalCard;
-    if (!modal || !card) return;
-
-    modal.classList.remove("hidden");
-    void modal.offsetWidth; // Reflow
-
-    modal.classList.add("modal-active");
-    card.classList.add("modal-card-active");
-  }
-
-  function closeEvalModal() {
-    const modal = els.evalModal;
-    const card = els.evalModalCard;
-    if (!modal || !card) return;
-
-    modal.classList.remove("modal-active");
-    card.classList.remove("modal-card-active");
-
-    setTimeout(() => {
-      if (!modal.classList.contains("modal-active")) {
-        modal.classList.add("hidden");
-      }
-    }, 300);
-  }
-
   function showLogin() {
     // Reset form saat masuk login
     if (els.nameInput) {
@@ -672,22 +842,35 @@
   els.nextBtn.addEventListener("click", nextQuestion);
   els.backToDashboardBtn.addEventListener("click", showDashboard);
 
-  // Klik riwayat percobaan (hanya memproses jika belum lulus)
+  // Klik riwayat percobaan → toggle panel detail inline (event delegation)
   els.historyList.addEventListener("click", (e) => {
-    const li = e.target.closest("li");
-    if (!li) return;
-    const passed = li.dataset.passed === "true";
-    if (passed) return; // Siswa yang sudah lulus tidak bisa melihat evaluasi agar tidak membagikan jawaban
-    const attempt = Number(li.dataset.attempt);
-    if (attempt) {
-      openEvalModal(attempt);
+    const headerLi = e.target.closest("li[data-attempt]");
+    if (!headerLi) return;
+    // Lewati klik yang berasal dari dalam detail-panel itu sendiri
+    if (headerLi.classList.contains("detail-panel")) return;
+    const attempt = headerLi.dataset.attempt;
+    if (!attempt) return;
+
+    // Cari detail-panel saudara dengan attempt yang sama
+    const panels = els.historyList.querySelectorAll("li.detail-panel");
+    for (const panel of panels) {
+      if (panel.dataset.attempt === attempt) {
+        panel.classList.toggle("hidden");
+        break;
+      }
     }
   });
 
-  els.evalCloseBtn.addEventListener("click", closeEvalModal);
+  // Bersihkan timer saat user meninggalkan halaman (jaga-jaga)
+  window.addEventListener("beforeunload", () => {
+    stopTimer();
+  });
 
-  // Tampilan awal: dashboard kalau sudah ada session, kalau tidak login
-  if (loadSession()) {
+  // Tampilan awal: prioritas — kuis yang tertunda (anti-refresh) > session > login
+  const pendingQuiz = loadQuizState();
+  if (pendingQuiz) {
+    resumeQuiz(pendingQuiz);
+  } else if (loadSession()) {
     showDashboard();
   } else {
     showLogin();
