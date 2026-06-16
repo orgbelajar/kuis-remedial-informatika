@@ -11,6 +11,7 @@
   // ---------- Constants ----------
   const STORAGE_KEY = "remedialSession";      // localStorage (profil + history permanen)
   const QUIZ_STATE_KEY = "remedialQuizState"; // sessionStorage (anti-refresh)
+  const RESULT_STATE_KEY = "remedialResultState"; // sessionStorage (result-state refresh survival)
   const PASSING_GRADE = 70;                   // KKM
   const WA_NUMBER = "6281412397588";           // Kak Nabil
   const OPTION_LETTERS = ["A", "B", "C", "D"];
@@ -150,10 +151,7 @@
   }
 
   // ============================================================
-  //  DATA LAYER (sessionStorage) — anti-refresh
-  // ============================================================
-
-  // Simpan state kuis ke sessionStorage (dipanggil setelah tiap jawaban)
+  // Simpan state kuis ke sessionStorage (dipanggil setelah tiap jawaban & perpindahan soal)
   function saveQuizState() {
     try {
       const state = {
@@ -161,6 +159,7 @@
         score: score,
         answers: [...answers],
         quizStartTime: quizStartTime,
+        isAnswered: isAnswered,
       };
       sessionStorage.setItem(QUIZ_STATE_KEY, JSON.stringify(state));
     } catch (e) {
@@ -182,6 +181,7 @@
         score: Math.max(0, Math.round(Number(data.score) || 0)),
         answers: data.answers,
         quizStartTime: data.quizStartTime,
+        isAnswered: !!data.isAnswered,
       };
     } catch (e) {
       return null;
@@ -196,6 +196,46 @@
       /* abaikan */
     }
   }
+
+  // Simpan state hasil kuis ke sessionStorage (supaya bertahan saat di-refresh di Result Screen)
+  function saveResultState(finalScore, correct, wrong, duration, answersArr) {
+    try {
+      const state = {
+        finalScore: finalScore,
+        correct: correct,
+        wrong: wrong,
+        duration: duration,
+        answers: [...answersArr],
+      };
+      sessionStorage.setItem(RESULT_STATE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("Tidak dapat menyimpan result state:", e);
+    }
+  }
+
+  // Baca & validasi state hasil kuis dari sessionStorage
+  function loadResultState() {
+    try {
+      const raw = sessionStorage.getItem(RESULT_STATE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (typeof data !== "object" || data === null) return null;
+      if (!Array.isArray(data.answers)) return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Hapus state hasil kuis dari sessionStorage
+  function clearResultState() {
+    try {
+      sessionStorage.removeItem(RESULT_STATE_KEY);
+    } catch (e) {
+      /* abaikan */
+    }
+  }
+
 
   // ============================================================
   //  HELPERS
@@ -473,9 +513,18 @@
         `<div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2 text-sm">` +
           // Ringkasan statistik
           `<div class="grid grid-cols-3 gap-2 text-center">` +
-            `<div class="bg-green-50 rounded-md p-2"><p class="font-bold text-green-600">${correctCount}</p><p class="text-[10px] text-gray-500">Benar</p></div>` +
-            `<div class="bg-red-50 rounded-md p-2"><p class="font-bold text-red-500">${wrongCount}</p><p class="text-[10px] text-gray-500">Salah</p></div>` +
-            `<div class="bg-blue-50 rounded-md p-2"><p class="font-bold text-blue-600 text-xs leading-tight">${escapeHtml(durationText)}</p><p class="text-[10px] text-gray-500">Waktu</p></div>` +
+            `<div class="bg-green-50 rounded-md p-2 flex flex-col justify-between">` +
+              `<p class="font-bold text-green-600 text-sm sm:text-base leading-tight">${correctCount}</p>` +
+              `<p class="text-[10px] text-gray-500 mt-1">Benar</p>` +
+            `</div>` +
+            `<div class="bg-red-50 rounded-md p-2 flex flex-col justify-between">` +
+              `<p class="font-bold text-red-500 text-sm sm:text-base leading-tight">${wrongCount}</p>` +
+              `<p class="text-[10px] text-gray-500 mt-1">Salah</p>` +
+            `</div>` +
+            `<div class="bg-blue-50 rounded-md p-2 flex flex-col justify-between">` +
+              `<p class="font-bold text-blue-600 text-sm sm:text-base leading-tight">${escapeHtml(durationText)}</p>` +
+              `<p class="text-[10px] text-gray-500 mt-1">Waktu</p>` +
+            `</div>` +
           `</div>`;
 
       if (passed) {
@@ -489,9 +538,9 @@
             `<p class="text-xs font-semibold text-gray-600 pt-1">Soal yang salah:</p>` +
             `<div class="space-y-1">` +
               wrongQuestions.map((wq) =>
-                `<div class="flex items-center gap-2 text-xs bg-red-50 border border-red-100 rounded px-2 py-1">` +
-                  `<span class="font-medium text-gray-700 shrink-0">Soal ${escapeHtml(String(wq.no))}</span>` +
-                  `<span class="text-red-600">Jawabanmu: ${escapeHtml(String(wq.selected))}</span>` +
+                `<div class="flex items-center justify-between text-xs bg-red-50 border border-red-100 rounded px-2 py-1">` +
+                  `<span class="font-medium text-gray-700">Soal ${escapeHtml(String(wq.no))}</span>` +
+                  `<span class="text-red-600 font-medium">Jawabanmu: ${escapeHtml(String(wq.selected))}</span>` +
                 `</div>`
               ).join("") +
             `</div>`;
@@ -528,7 +577,9 @@
     answers.length = 0;
     isAnswered = false;
     clearQuizState();     // bersihkan state lama sebelum mulai baru
+    clearResultState();   // bersihkan state hasil lama
     quizStartTime = Date.now(); // mulai timer baru
+    saveQuizState();      // simpan state awal agar refresh di soal 1 tetap di quiz screen
     startTimer();
     renderQuestion();
     showScreen("quiz");
@@ -536,19 +587,12 @@
 
   // Lanjutkan kuis dari sessionStorage (anti-refresh)
   function resumeQuiz(state) {
-    currentQuestionIndex = state.currentQuestionIndex + 1; // lanjut ke soal berikutnya
+    currentQuestionIndex = state.currentQuestionIndex;
     score = state.score;
     answers.length = 0;
     state.answers.forEach((a) => answers.push(a));
-    isAnswered = false;
+    isAnswered = !!state.isAnswered;
     quizStartTime = state.quizStartTime; // pertahankan start time asli
-
-    // Kasus: soal terakhir sudah dijawab sebelum refresh → langsung hasil
-    if (currentQuestionIndex >= quizData.length) {
-      startTimer(); // timer tetap jalan untuk konsistensi, akan distop di showResult
-      showResult();
-      return;
-    }
 
     startTimer();
     renderQuestion();
@@ -558,7 +602,6 @@
   function renderQuestion() {
     const q = quizData[currentQuestionIndex];
     const total = quizData.length;
-    isAnswered = false;
 
     // Progress bar & teks
     const progressPercent = (currentQuestionIndex / total) * 100;
@@ -591,9 +634,44 @@
       els.optionsContainer.appendChild(btn);
     });
 
-    // Sembunyikan penjelasan & tombol selanjutnya (state awal tiap soal)
-    els.explanationBox.classList.add("hidden");
-    els.nextBtn.classList.add("hidden");
+    // Sembunyikan/tampilkan penjelasan & tombol selanjutnya berdasarkan isAnswered
+    if (isAnswered) {
+      const selectedIdx = answers[currentQuestionIndex];
+      const correctIdx = q.correctAnswerIndex;
+      const buttons = els.optionsContainer.querySelectorAll(".option-btn");
+      buttons.forEach((btn) => {
+        const idx = Number(btn.dataset.index);
+        btn.disabled = true;
+
+        if (idx === correctIdx) {
+          btn.classList.remove("border-gray-200", "bg-white");
+          btn.classList.add("border-green-500", "bg-green-50");
+          btn.querySelector(".option-letter").classList.remove("bg-gray-100", "text-gray-600");
+          btn.querySelector(".option-letter").classList.add("bg-green-500", "text-white");
+          btn.querySelector(".option-text").classList.add("text-green-700", "font-medium");
+          appendMark(btn, "✓", "text-green-600");
+        } else if (idx === selectedIdx) {
+          btn.classList.remove("border-gray-200", "bg-white");
+          btn.classList.add("border-red-400", "bg-red-50");
+          btn.querySelector(".option-letter").classList.remove("bg-gray-100", "text-gray-600");
+          btn.querySelector(".option-letter").classList.add("bg-red-500", "text-white");
+          btn.querySelector(".option-text").classList.add("text-red-700");
+          appendMark(btn, "✗", "text-red-500");
+        } else {
+          btn.classList.add("opacity-60");
+        }
+      });
+
+      els.explanationText.textContent = q.explanation;
+      els.explanationBox.classList.remove("hidden");
+
+      const isLast = currentQuestionIndex === quizData.length - 1;
+      els.nextBtn.textContent = isLast ? "Lihat Hasil" : "Soal Selanjutnya";
+      els.nextBtn.classList.remove("hidden");
+    } else {
+      els.explanationBox.classList.add("hidden");
+      els.nextBtn.classList.add("hidden");
+    }
   }
 
   // Skor real-time dalam skala 0-100 (berdasar jumlah benar saat ini)
@@ -670,7 +748,9 @@
 
   function nextQuestion() {
     currentQuestionIndex++;
+    isAnswered = false; // Reset status jawaban untuk soal berikutnya
     if (currentQuestionIndex < quizData.length) {
+      saveQuizState(); // Simpan state soal berikutnya
       renderQuestion();
     } else {
       showResult();
@@ -712,9 +792,17 @@
       saveSession(session); // bestScore di-recompute di sini
     }
 
-    // ---- Bersihkan sessionStorage (data sudah permanen di localStorage) ----
+    // ---- Bersihkan sessionStorage kuis (karena sudah selesai) ----
     clearQuizState();
 
+    // ---- Simpan state hasil ke sessionStorage agar refresh tetap berada di result screen ----
+    saveResultState(finalScore, correct, wrong, duration, answers);
+
+    // ---- Render tampilan hasil ----
+    renderResultUI(finalScore, correct, wrong, duration);
+  }
+
+  function renderResultUI(finalScore, correct, wrong, duration) {
     const hasPassed = finalScore >= PASSING_GRADE;
 
     // ---- Ucapan dinamis berdasarkan skor ----
@@ -838,7 +926,10 @@
     startQuiz();
   });
   els.nextBtn.addEventListener("click", nextQuestion);
-  els.backToDashboardBtn.addEventListener("click", showDashboard);
+  els.backToDashboardBtn.addEventListener("click", () => {
+    clearResultState();
+    showDashboard();
+  });
 
   // Klik riwayat percobaan → toggle panel detail inline (event delegation)
   els.historyList.addEventListener("click", (e) => {
@@ -864,9 +955,21 @@
     stopTimer();
   });
 
-  // Tampilan awal: prioritas — kuis yang tertunda (anti-refresh) > session > login
+  // Tampilan awal: prioritas — hasil kuis (refresh) > kuis yang tertunda (anti-refresh) > session > login
+  const pendingResult = loadResultState();
   const pendingQuiz = loadQuizState();
-  if (pendingQuiz) {
+
+  if (pendingResult) {
+    // Kembalikan array answers untuk digunakan di renderReview()
+    answers.length = 0;
+    pendingResult.answers.forEach((a) => answers.push(a));
+    renderResultUI(
+      pendingResult.finalScore,
+      pendingResult.correct,
+      pendingResult.wrong,
+      pendingResult.duration
+    );
+  } else if (pendingQuiz) {
     resumeQuiz(pendingQuiz);
   } else if (loadSession()) {
     showDashboard();

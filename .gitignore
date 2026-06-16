@@ -22,3 +22,18 @@ yarn-error.log*
 # Build output
 dist/
 build/
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage/
+
+# Linter cache
+.eslintcache
+
+# Local history (editor extension)
+.history/
+
