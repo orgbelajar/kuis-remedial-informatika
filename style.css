@@ -1,0 +1,98 @@
+:root {
+  --color-primary: 60% 0.16 250;
+  --color-primary-dark: 52% 0.16 250;
+  --color-success: 69% 0.16 140;
+  --color-error: 65% 0.19 25;
+  --color-warning: 78% 0.15 75;
+  --color-ink: 20% 0.02 250;
+  --color-paper: 98% 0.01 250;
+  --color-bg: 97% 0.01 250;
+  --color-card: 100% 0 0;
+  --color-border: 94% 0.01 250;
+  --color-input: 97% 0.01 250;
+}
+
+.theme-dark {
+  --color-primary: 65% 0.15 250;
+  --color-primary-dark: 57% 0.15 250;
+  --color-success: 65% 0.15 140;
+  --color-error: 60% 0.18 25;
+  --color-warning: 75% 0.14 75;
+  --color-ink: 93% 0.01 250;
+  --color-paper: 18% 0.02 250;
+  --color-bg: 12% 0.02 250;
+  --color-card: 18% 0.02 250;
+  --color-border: 25% 0.02 250;
+  --color-input: 22% 0.02 250;
+}
+
+.theme-warm {
+  --color-primary: 58% 0.13 60;
+  --color-primary-dark: 50% 0.13 60;
+  --color-success: 65% 0.13 130;
+  --color-error: 60% 0.15 25;
+  --color-warning: 75% 0.12 75;
+  --color-ink: 22% 0.04 60;
+  --color-paper: 96% 0.02 80;
+  --color-bg: 93% 0.03 80;
+  --color-card: 97% 0.02 80;
+  --color-border: 88% 0.04 80;
+  --color-input: 92% 0.03 80;
+}
+
+/* Responsivitas & keamanan tata letak */
+html, body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+/* Scrollbar kustom untuk riwayat dan ulasan */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: oklch(20% 0.02 250 / 0.1);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: oklch(20% 0.02 250 / 0.2);
+}
+
+/* Animasi fade-in untuk transisi layar */
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Animasi slide-in untuk kartu penjelasan / tombol selanjutnya */
+.slide-in {
+  animation: slideIn 0.35s ease-out;
+}
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Animasi modal kustom */
+.modal-active {
+  opacity: 1 !important;
+}
+.modal-card-active {
+  transform: scale(1) !important;
+  opacity: 1 !important;
+}
