@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Remedial UAS Informatika Kelas VIII - SMP MUH 1 TNG</title>
-    <link rel="icon" type="image/svg+xml" href="faviocon.svg" />
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png" />
+    <link rel="manifest" href="favicon_io/site.webmanifest" />
     <script>
       (function() {
         const savedTheme = localStorage.getItem('kuis-theme') || 'light';
@@ -22,7 +26,7 @@
       rel="stylesheet"
     />
 
-    <!-- Tailwind CSS via CDN -->
+    <!-- Tailwind CSS melalui CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -57,114 +61,16 @@
       };
     </script>
 
-    <style>
-      :root {
-        --color-primary: 60% 0.16 250;
-        --color-primary-dark: 52% 0.16 250;
-        --color-success: 69% 0.16 140;
-        --color-error: 65% 0.19 25;
-        --color-warning: 78% 0.15 75;
-        --color-ink: 20% 0.02 250;
-        --color-paper: 98% 0.01 250;
-        --color-bg: 97% 0.01 250;
-        --color-card: 100% 0 0;
-        --color-border: 94% 0.01 250;
-        --color-input: 97% 0.01 250;
-      }
-
-      .theme-dark {
-        --color-primary: 65% 0.15 250;
-        --color-primary-dark: 57% 0.15 250;
-        --color-success: 65% 0.15 140;
-        --color-error: 60% 0.18 25;
-        --color-warning: 75% 0.14 75;
-        --color-ink: 93% 0.01 250;
-        --color-paper: 18% 0.02 250;
-        --color-bg: 12% 0.02 250;
-        --color-card: 18% 0.02 250;
-        --color-border: 25% 0.02 250;
-        --color-input: 22% 0.02 250;
-      }
-
-      .theme-warm {
-        --color-primary: 58% 0.13 60;
-        --color-primary-dark: 50% 0.13 60;
-        --color-success: 65% 0.13 130;
-        --color-error: 60% 0.15 25;
-        --color-warning: 75% 0.12 75;
-        --color-ink: 22% 0.04 60;
-        --color-paper: 96% 0.02 80;
-        --color-bg: 93% 0.03 80;
-        --color-card: 97% 0.02 80;
-        --color-border: 88% 0.04 80;
-        --color-input: 92% 0.03 80;
-      }
-
-      /* Responsiveness & layout safety */
-      html, body {
-        overflow-x: clip;
-        max-width: 100%;
-      }
-      /* Custom scrollbar for history and review */
-      .scrollbar-thin::-webkit-scrollbar {
-        width: 5px;
-      }
-      .scrollbar-thin::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .scrollbar-thin::-webkit-scrollbar-thumb {
-        background: oklch(20% 0.02 250 / 0.1);
-        border-radius: 9999px;
-      }
-      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-        background: oklch(20% 0.02 250 / 0.2);
-      }
-
-      /* Fade-in animation for screen transitions */
-      .fade-in {
-        animation: fadeIn 0.4s ease-out;
-      }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      /* Slide-in for explanation card / next button */
-      .slide-in {
-        animation: slideIn 0.35s ease-out;
-      }
-      @keyframes slideIn {
-        from {
-          opacity: 0;
-          transform: translateY(12px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      /* Custom Modal Animations */
-      .modal-active {
-        opacity: 1 !important;
-      }
-      .modal-card-active {
-        transform: scale(1) !important;
-        opacity: 1 !important;
-      }
-    </style>
+    <!-- Lembar Gaya Kustom -->
+    <link rel="stylesheet" href="style.css" />
   </head>
 
   <body
     class="font-sans bg-bg text-ink min-h-screen flex flex-col items-center justify-center p-4 pt-16 sm:p-6"
   >
-    <!-- ===================== THEME SWITCHER ===================== -->
+    <!-- ===================== PENGALIH TEMA ===================== -->
     <div class="fixed top-3 right-3 sm:top-4 sm:right-4 z-50 bg-card border border-border p-1 rounded-full shadow-soft flex items-center gap-0.5 animate-fadeIn">
-      <!-- Light (Sun) -->
+      <!-- Terang (Matahari) -->
       <button
         id="theme-light-btn"
         class="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 text-ink/40 hover:text-ink/80 [&.active]:bg-primary [&.active]:text-white [&.active]:shadow-sm"
@@ -182,7 +88,7 @@
           <path d="m19.07 4.93-1.41 1.41"/>
         </svg>
       </button>
-      <!-- Dark (Moon) -->
+      <!-- Gelap (Bulan) -->
       <button
         id="theme-dark-btn"
         class="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 text-ink/40 hover:text-ink/80 [&.active]:bg-primary [&.active]:text-white [&.active]:shadow-sm"
@@ -192,7 +98,7 @@
           <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
         </svg>
       </button>
-      <!-- Warm (Coffee) -->
+      <!-- Hangat (Kopi) -->
       <button
         id="theme-warm-btn"
         class="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 text-ink/40 hover:text-ink/80 [&.active]:bg-primary [&.active]:text-white [&.active]:shadow-sm"
@@ -208,7 +114,7 @@
       </button>
     </div>
 
-    <!-- ===================== LOGIN SCREEN ===================== -->
+    <!-- ===================== LAYAR LOGIN ===================== -->
     <main class="w-full max-w-md">
       <section
         id="login-screen"
@@ -271,7 +177,7 @@
         </form>
       </section>
 
-      <!-- ===================== DASHBOARD SCREEN ===================== -->
+      <!-- ===================== LAYAR DASHBOARD ===================== -->
       <section
         id="dashboard-screen"
         class="hidden bg-card rounded-3xl border border-border shadow-soft p-5 sm:p-6 text-center fade-in"
@@ -300,7 +206,7 @@
           </div>
         </div>
 
-        <!-- Greeting -->
+        <!-- Salam Sapaan -->
         <div class="text-left mb-5">
           <span class="text-xs font-semibold text-ink/50 uppercase tracking-wider">Selamat Datang</span>
           <h2
@@ -310,7 +216,7 @@
           ></h2>
         </div>
 
-        <!-- Best score + status card -->
+        <!-- Skor terbaik + kartu status -->
         <div class="bg-bg border border-border/70 rounded-2xl p-4 mb-6 flex items-center justify-between text-left">
           <div>
             <p class="text-xs font-semibold text-ink/50 uppercase tracking-wider mb-1">Skor Terbaik</p>
@@ -325,7 +231,7 @@
           </p>
         </div>
 
-        <!-- History -->
+        <!-- Riwayat -->
         <div class="text-left mb-6">
           <p class="text-sm font-bold text-ink/80 mb-3 flex items-center gap-1.5">
             <span>📜</span> Riwayat Percobaan
@@ -334,11 +240,11 @@
             id="history-list"
             class="space-y-3 max-h-60 overflow-y-auto pr-1 text-left scrollbar-thin"
           >
-            <!-- rendered by JS -->
+            <!-- dirender oleh JS -->
           </ul>
         </div>
 
-        <!-- Action buttons (toggled by JS) -->
+        <!-- Tombol aksi (diubah oleh JS) -->
         <div
           id="passing-grade-info"
           class="hidden text-xs sm:text-sm text-ink/80 mb-5 bg-warning/10 border border-warning/20 rounded-2xl p-3.5 text-left flex items-start gap-2.5"
@@ -354,6 +260,36 @@
           Mulai Remedial
         </button>
         
+        <button
+          id="view-last-result-btn"
+          type="button"
+          class="hidden w-full min-h-12 border-2 border-primary bg-transparent hover:bg-primary/5 text-primary font-bold text-sm sm:text-base py-3 px-4 rounded-2xl shadow-sm transition-all duration-200 active:scale-[0.98] mb-3 flex items-center justify-center gap-2"
+        >
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <defs><style>.cls-1{fill:#40bdff;}.cls-2{fill:#2197f7;}.cls-3{fill:#effafe;}.cls-4{fill:#e4ebed;}.cls-5{fill:#263238;}.cls-6{fill:#fd0;}</style></defs>
+            <path class="cls-1" d="M98.26,39.12V52.4A6.69,6.69,0,0,0,105,59.08h52.1a6.69,6.69,0,0,0,6.69-6.68V39.12a6.7,6.7,0,0,0-6.69-6.69,10.67,10.67,0,0,1-10.68-10.68V18.68A6.69,6.69,0,0,0,139.68,12H122.32a6.69,6.69,0,0,0-6.69,6.68v3.07A10.69,10.69,0,0,1,105,32.43,6.69,6.69,0,0,0,98.26,39.12Z"></path>
+            <path class="cls-2" d="M157.05,32.43a10.67,10.67,0,0,1-10.68-10.68V18.68A6.69,6.69,0,0,0,139.68,12h-8a6.69,6.69,0,0,1,6.69,6.68v3.07a10.67,10.67,0,0,0,10.68,10.68,6.7,6.7,0,0,1,6.69,6.69V52.4a6.69,6.69,0,0,1-6.69,6.68h8a6.69,6.69,0,0,0,6.69-6.68V39.12A6.7,6.7,0,0,0,157.05,32.43Z"></path>
+            <path class="cls-3" d="M63.31,244H197.69a8,8,0,0,0,8-8V55.76a8,8,0,0,0-8-8H164.74V52.4a10.7,10.7,0,0,1-10.69,10.68H102A10.7,10.7,0,0,1,91.26,52.4V47.76h-28a8,8,0,0,0-8,8V236A8,8,0,0,0,63.31,244ZM94.72,74.51a2,2,0,0,1,0,2.83l-20,20a2,2,0,0,1-2.83,0l-10-10a2,2,0,0,1,2.83-2.83l8.59,8.59L91.9,74.51A2,2,0,0,1,94.72,74.51Zm-30,40,8.59,8.59L91.9,104.51a2,2,0,0,1,2.83,2.83l-20,20a2,2,0,0,1-2.83,0l-10-10a2,2,0,0,1,2.83-2.83Zm0,30,8.59,8.59L91.9,134.51a2,2,0,0,1,2.83,2.83l-20,20a2,2,0,0,1-2.83,0l-10-10a2,2,0,0,1,2.83-2.83Zm0,30,8.59,8.59L91.9,164.51a2,2,0,0,1,2.83,2.83l-20,20a2,2,0,0,1-2.83,0l-10-10a2,2,0,0,1,2.83-2.83Zm0,29.92L73.31,213,91.9,194.43a2,2,0,0,1,2.83,2.83l-20,20a2,2,0,0,1-2.83,0l-10-10a2,2,0,0,1,2.83-2.83Zm128-116.51H108.26a2,2,0,0,1,0-4h84.43a2,2,0,0,1,0,4Zm-84.43,26h84.43a2,2,0,0,1,0,4H108.26a2,2,0,0,1,0-4Zm0,30h84.43a2,2,0,0,1,0,4H108.26a2,2,0,1,1,0-4Zm0,30h84.43a2,2,0,0,1,0,4H108.26a2,2,0,1,1,0-4Zm0,29.92h84.43a2,2,0,0,1,0,4H108.26a2,2,0,1,1,0-4Z"></path>
+            <path class="cls-4" d="M197.69,47.76h-5a8,8,0,0,1,8,8V236a8,8,0,0,1-8,8h5a8,8,0,0,0,8-8V55.76A8,8,0,0,0,197.69,47.76Z"></path>
+            <path class="cls-5" d="M136.68,7.5H119.32a11.2,11.2,0,0,0-11.19,11.18v3.07A6.19,6.19,0,0,1,102,27.93,11.18,11.18,0,0,0,90.76,39.12v4.14H58.31a12.51,12.51,0,0,0-12.5,12.5V236a12.51,12.51,0,0,0,12.5,12.5H197.69a12.51,12.51,0,0,0,12.5-12.5V55.76a12.51,12.51,0,0,0-12.5-12.5H165.24V39.12a11.2,11.2,0,0,0-11.19-11.19,6.17,6.17,0,0,1-6.18-6.18V18.68A11.2,11.2,0,0,0,136.68,7.5Zm28.56,44.9V48.26h32.45a7.51,7.51,0,0,1,7.5,7.5V236a7.51,7.51,0,0,1-7.5,7.5H58.31a7.51,7.51,0,0,1-7.5-7.5V55.76a7.51,7.51,0,0,1,7.5-7.5H90.76V52.4A11.2,11.2,0,0,0,102,63.58h52.1A11.2,11.2,0,0,0,165.24,52.4ZM154.05,32.93a6.2,6.2,0,0,1,6.19,6.19V52.4a6.19,6.19,0,0,1-6.19,6.18H102a6.19,6.19,0,0,1-6.19-6.18V39.12A6.19,6.19,0,0,1,102,32.93a11.19,11.19,0,0,0,11.18-11.18V18.68a6.19,6.19,0,0,1,6.19-6.18h17.36a6.19,6.19,0,0,1,6.19,6.18v3.07a11.17,11.17,0,0,0,11.18,11.18Z"></path>
+            <path class="cls-5" d="M91.54,74.15,73.31,92.38l-8.23-8.23a2.5,2.5,0,0,0-3.54,3.54l10,10a2.5,2.5,0,0,0,3.54,0l20-20a2.5,2.5,0,0,0-3.54-3.54Z"></path>
+            <path class="cls-5" d="M105.76,85.92a2.5,2.5,0,0,0,2.5,2.5h84.43a2.5,2.5,0,0,0,0-5H108.26A2.5,2.5,0,0,0,105.76,85.92Z"></path>
+            <path class="cls-5" d="M91.54,104.15,73.31,122.38l-8.23-8.23a2.5,2.5,0,1,0-3.54,3.54l10,10a2.5,2.5,0,0,0,3.54,0l20-20a2.5,2.5,0,1,0-3.54-3.54Z"></path>
+            <path class="cls-5" d="M192.69,113.42H108.26a2.5,2.5,0,0,0,0,5h84.43a2.5,2.5,0,0,0,0-5Z"></path>
+            <path class="cls-5" d="M91.54,134.15,73.31,152.38l-8.23-8.23a2.5,2.5,0,0,0-3.54,3.54l10,10a2.5,2.5,0,0,0,3.54,0l20-20a2.5,2.5,0,0,0-3.54-3.54Z"></path>
+            <path class="cls-5" d="M192.69,143.42H108.26a2.5,2.5,0,1,0,0,5h84.43a2.5,2.5,0,0,0,0-5Z"></path>
+            <path class="cls-5" d="M91.54,164.15,73.31,182.38l-8.23-8.23a2.5,2.5,0,0,0-3.54,3.54l10,10a2.5,2.5,0,0,0,3.54,0l20-20a2.5,2.5,0,0,0-3.54-3.54Z"></path>
+            <path class="cls-5" d="M192.69,173.42H108.26a2.5,2.5,0,1,0,0,5h84.43a2.5,2.5,0,0,0,0-5Z"></path>
+            <path class="cls-5" d="M91.54,194.07,73.31,212.3l-8.23-8.23a2.5,2.5,0,0,0-3.54,3.54l10,10a2.5,2.5,0,0,0,3.54,0l20-20a2.5,2.5,0,1,0-3.54-3.54Z"></path>
+            <path class="cls-5" d="M192.69,203.34H108.26a2.5,2.5,0,1,0,0,5h84.43a2.5,2.5,0,0,0,0-5Z"></path>
+            <path class="cls-1" d="M235,200.84h-4v-4a1,1,0,0,0-2,0v4h-4a1,1,0,0,0,0,2h4v4a1,1,0,0,0,2,0v-4h4a1,1,0,0,0,0-2Z"></path>
+            <path class="cls-1" d="M182.75,34.68a6,6,0,1,1,6-6A6,6,0,0,1,182.75,34.68Zm0-10a4,4,0,1,0,4,4A4,4,0,0,0,182.75,24.68Z"></path>
+            <path class="cls-6" d="M230,89.42a6,6,0,1,1,6-6A6,6,0,0,1,230,89.42Zm0-10a4,4,0,1,0,4,4A4,4,0,0,0,230,79.42Z"></path>
+            <path class="cls-1" d="M39,154.35H36.41l1.83-1.83a1,1,0,0,0-1.41-1.41L35,152.94v-2.59a1,1,0,0,0-2,0v2.59l-1.83-1.83a1,1,0,0,0-1.41,1.41l1.83,1.83H29a1,1,0,0,0,0,2h2.59l-1.83,1.83a1,1,0,0,0,1.41,1.41L33,157.77v2.59a1,1,0,0,0,2,0v-2.59l1.83,1.83a1,1,0,0,0,1.41-1.41l-1.83-1.83H39a1,1,0,0,0,0-2Z"></path>
+          </svg>
+          <span class="whitespace-nowrap">Lihat Hasil Terakhir</span>
+        </button>
+
         <div
           id="wa-info-text"
           class="hidden text-xs sm:text-sm text-ink/80 mb-4 bg-success/10 border border-success/20 rounded-2xl p-3.5 text-left flex items-start gap-2.5"
@@ -361,40 +297,54 @@
           <span class="text-success text-lg leading-none shrink-0">💡</span>
           <span class="leading-relaxed">Setelah lulus remedial, wajib screenshot (SS) hasil kuis dan kirim ke WhatsApp Kak Nabil dengan klik tombol di bawah.</span>
         </div>
-        
+
+        <button
+          id="dashboard-screenshot-btn"
+          type="button"
+          class="hidden w-full min-h-12 bg-primary hover:bg-primary-dark text-white font-bold text-sm sm:text-base py-3.5 px-4 rounded-2xl shadow-button transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/20 disabled:bg-ink/10 disabled:text-ink/35 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2 mb-3"
+        >
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M53.06 44.1202L42.3 33.3502C42.017 33.0687 41.6341 32.9106 41.235 32.9106C40.8358 32.9106 40.4529 33.0687 40.17 33.3502L33.5 40.0002C33.3597 40.1388 33.2483 40.3038 33.1723 40.4858C33.0963 40.6678 33.0571 40.863 33.0571 41.0602C33.0571 41.2574 33.0963 41.4526 33.1723 41.6346C33.2483 41.8165 33.3597 41.9816 33.5 42.1202L44.41 53.0602C44.691 53.3416 45.0723 53.4998 45.47 53.5002H52C52.3978 53.5002 52.7793 53.3422 53.0606 53.0609C53.342 52.7795 53.5 52.398 53.5 52.0002V45.1802C53.4996 44.7825 53.3414 44.4012 53.06 44.1202V44.1202Z" fill="#3D8C2A"></path>
+            <path d="M46.53 50.94L24.38 28.79C24.2414 28.6497 24.0764 28.5384 23.8944 28.4623C23.7124 28.3863 23.5172 28.3472 23.32 28.3472C23.1228 28.3472 22.9276 28.3863 22.7456 28.4623C22.5636 28.5384 22.3986 28.6497 22.26 28.79L10.94 40.11C10.6586 40.3911 10.5004 40.7723 10.5 41.17V52C10.5 52.3979 10.658 52.7794 10.9393 53.0607C11.2206 53.342 11.6022 53.5 12 53.5H45.47C45.7665 53.4998 46.0562 53.4117 46.3027 53.2468C46.5491 53.082 46.7411 52.8478 46.8546 52.5739C46.968 52.3 46.9977 51.9986 46.9399 51.7078C46.8822 51.417 46.7395 51.1498 46.53 50.94Z" fill="#71B263"></path>
+            <path d="M32.82 27.2498C35.9017 27.2498 38.4 24.7516 38.4 21.6698C38.4 18.5881 35.9017 16.0898 32.82 16.0898C29.7382 16.0898 27.24 18.5881 27.24 21.6698C27.24 24.7516 29.7382 27.2498 32.82 27.2498Z" fill="#F8B64C"></path>
+            <path d="M60 50.5H53.5V13.5H60C60.3978 13.5 60.7794 13.342 61.0607 13.0607C61.342 12.7794 61.5 12.3978 61.5 12C61.5 11.6022 61.342 11.2206 61.0607 10.9393C60.7794 10.658 60.3978 10.5 60 10.5H53.5V4C53.5 3.60218 53.342 3.22064 53.0607 2.93934C52.7794 2.65804 52.3978 2.5 52 2.5C51.6022 2.5 51.2206 2.65804 50.9393 2.93934C50.658 3.22064 50.5 3.60218 50.5 4V10.5H13.5V4C13.5 3.60218 13.342 3.22064 13.0607 2.93934C12.7794 2.65804 12.3978 2.5 12 2.5C11.6022 2.5 11.2206 2.65804 10.9393 2.93934C10.658 3.22064 10.5 3.60218 10.5 4V10.5H4C3.60218 10.5 3.22064 10.658 2.93934 10.9393C2.65804 11.2206 2.5 11.6022 2.5 12C2.5 12.3978 2.65804 12.7794 2.93934 13.0607C3.22064 13.342 3.60218 13.5 4 13.5H10.5V50.5H4C3.60218 50.5 3.22064 50.658 2.93934 50.9393C2.65804 51.2206 2.5 51.6022 2.5 52C2.5 52.3978 2.65804 52.7794 2.93934 53.0607C3.22064 53.342 3.60218 53.5 4 53.5H10.5V60C10.5 60.3978 10.658 60.7794 10.9393 61.0607C11.2206 61.342 11.6022 61.5 12 61.5C12.3978 61.5 12.7794 61.342 13.0607 61.0607C13.342 60.7794 13.5 60.3978 13.5 60V53.5H50.5V60C50.5 60.3978 50.658 60.7794 50.9393 61.0607C51.2206 61.342 51.6022 61.5 52 61.5C52.3978 61.5 52.7794 61.342 53.0607 61.0607C53.342 60.7794 53.5 60.3978 53.5 60V53.5H60C60.3978 53.5 60.7794 53.342 61.0607 53.0607C61.342 52.7794 61.5 52.3978 61.5 52C61.5 51.6022 61.342 51.2206 61.0607 50.9393C60.7794 50.658 60.3978 50.5 60 50.5ZM13.5 13.5H50.5V50.5H13.5V13.5Z" fill="#275996"></path>
+            <path d="M32.82 27.2601C33.926 27.2621 35.0078 26.9359 35.9283 26.3229C36.8489 25.7098 37.567 24.8375 37.9916 23.8162C38.4162 22.7949 38.5284 21.6707 38.3138 20.5857C38.0992 19.5006 37.5676 18.5037 36.7863 17.7209C36.0049 16.9381 35.0089 16.4047 33.9242 16.1882C32.8396 15.9717 31.7151 16.0818 30.6931 16.5046C29.6711 16.9274 28.7975 17.6439 28.1828 18.5634C27.5681 19.4829 27.24 20.564 27.24 21.6701C27.2426 23.1501 27.831 24.5689 28.8766 25.6164C29.9222 26.6638 31.34 27.2548 32.82 27.2601V27.2601ZM32.82 19.0901C33.3331 19.0881 33.8352 19.2386 34.2627 19.5224C34.6901 19.8062 35.0236 20.2106 35.2209 20.6843C35.4182 21.158 35.4703 21.6795 35.3707 22.1829C35.2711 22.6862 35.0242 23.1486 34.6614 23.5115C34.2986 23.8743 33.8361 24.1212 33.3328 24.2208C32.8295 24.3204 32.3079 24.2683 31.8342 24.071C31.3605 23.8737 30.9561 23.5402 30.6723 23.1128C30.3885 22.6853 30.238 22.1832 30.24 21.6701C30.2426 20.9866 30.5153 20.3319 30.9986 19.8486C31.4818 19.3654 32.1365 19.0927 32.82 19.0901Z" fill="black"></path>
+            <path d="M60 50.5H53.5V13.5H60C60.3978 13.5 60.7794 13.342 61.0607 13.0607C61.342 12.7794 61.5 12.3978 61.5 12C61.5 11.6022 61.342 11.2206 61.0607 10.9393C60.7794 10.658 60.3978 10.5 60 10.5H53.5V4C53.5 3.60218 53.342 3.22064 53.0607 2.93934C52.7794 2.65804 52.3978 2.5 52 2.5C51.6022 2.5 51.2206 2.65804 50.9393 2.93934C50.658 3.22064 50.5 3.60218 50.5 4V10.5H13.5V4C13.5 3.60218 13.342 3.22064 13.0607 2.93934C12.7794 2.65804 12.3978 2.5 12 2.5C11.6022 2.5 11.2206 2.65804 10.9393 2.93934C10.658 3.22064 10.5 3.60218 10.5 4V10.5H4C3.60218 10.5 3.22064 10.658 2.93934 10.9393C2.65804 11.2206 2.5 11.6022 2.5 12C2.5 12.3978 2.65804 12.7794 2.93934 13.0607C3.22064 13.342 3.60218 13.5 4 13.5H10.5V50.5H4C3.60218 50.5 3.22064 50.658 2.93934 50.9393C2.65804 51.2206 2.5 51.6022 2.5 52C2.5 52.3978 2.65804 52.7794 2.93934 53.0607C3.22064 53.342 3.60218 53.5 4 53.5H10.5V60C10.5 60.3978 10.658 60.7794 10.9393 61.0607C11.2206 61.342 11.6022 61.5 12 61.5C12.3978 61.5 12.7794 61.342 13.0607 61.0607C13.342 60.7794 13.5 60.3978 13.5 60V53.5H50.5V60C50.5 60.3978 50.658 60.7794 50.9393 61.0607C51.2206 61.342 51.6022 61.5 52 61.5C52.3978 61.5 52.7794 61.342 53.0607 61.0607C53.342 60.7794 53.5 60.3978 53.5 60V53.5H60C60.3978 53.5 60.7794 53.342 61.0607 53.0607C61.342 52.7794 61.5 52.3978 61.5 52C61.5 51.6022 61.342 51.2206 61.0607 50.9393C60.7794 50.658 60.3978 50.5 60 50.5ZM46.09 50.5L36.68 41.09L41.24 36.54L50.5 45.8V50.5H46.09ZM50.5 41.56L42.3 33.35C42.017 33.0685 41.6341 32.9105 41.235 32.9105C40.8359 32.9105 40.453 33.0685 40.17 33.35L34.56 39L24.38 28.79C24.0927 28.5207 23.7137 28.3709 23.32 28.3709C22.9263 28.3709 22.5473 28.5207 22.26 28.79L13.5 37.55V13.55H50.5V41.56ZM13.5 41.79L23.32 32L41.85 50.5H13.5V41.79Z" fill="black"></path>
+          </svg>
+          <span class="whitespace-nowrap">Screenshot Hasil</span>
+        </button>
+
         <a
           id="wa-btn"
           href="#"
           target="_blank"
           rel="noopener"
-          class="hidden w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-sm sm:text-base py-3.5 rounded-2xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+          aria-disabled="true"
+          class="hidden w-full bg-[#25D366] opacity-40 hover:bg-[#20ba5a] text-white font-bold text-sm sm:text-base py-3.5 rounded-2xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 aria-disabled:bg-ink/10 aria-disabled:text-ink/35 aria-disabled:shadow-none aria-disabled:cursor-not-allowed aria-disabled:active:scale-100"
         >
-          <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 48 48"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <g transform="translate(-700.000000, -360.000000)">
-                <path
-                  d="M723.993033,360 C710.762252,360 700,370.765287 700,383.999801 C700,389.248451 701.692661,394.116025 704.570026,398.066947 L701.579605,406.983798 L710.804449,404.035539 C714.598605,406.546975 719.126434,408 724.006967,408 C737.237748,408 748,397.234315 748,384.000199 C748,370.765685 737.237748,360.000398 724.006967,360.000398 L723.993033,360.000398 L723.993033,360 Z M717.29285,372.190836 C716.827488,371.07628 716.474784,371.034071 715.769774,371.005401 C715.529728,370.991464 715.262214,370.977527 714.96564,370.977527 C714.04845,370.977527 713.089462,371.245514 712.511043,371.838033 C711.806033,372.557577 710.056843,374.23638 710.056843,377.679202 C710.056843,381.122023 712.567571,384.451756 712.905944,384.917648 C713.258648,385.382743 717.800808,392.55031 724.853297,395.471492 C730.368379,397.757149 732.00491,397.545307 733.260074,397.27732 C735.093658,396.882308 737.393002,395.527239 737.971421,393.891043 C738.54984,392.25405 738.54984,390.857171 738.380255,390.560912 C738.211068,390.264652 737.745308,390.095816 737.040298,389.742615 C736.335288,389.389811 732.90737,387.696673 732.25849,387.470894 C731.623543,387.231179 731.017259,387.315995 730.537963,387.99333 C729.860819,388.938653 729.198006,389.89831 728.661785,390.476494 C728.238619,390.928051 727.547144,390.984595 726.969123,390.744481 C726.193254,390.420348 724.021298,389.657798 721.340985,387.273388 C719.267356,385.42535 717.856938,383.125756 717.448104,382.434484 C717.038871,381.729275 717.405907,381.319529 717.729948,380.938852 C718.082653,380.501232 718.421026,380.191036 718.77373,379.781688 C719.126434,379.372738 719.323884,379.160897 719.549599,378.681068 C719.789645,378.215575 719.62006,377.735746 719.450874,377.382942 C719.281687,377.030139 717.871269,373.587317 717.29285,372.190836 Z"
-                  fill="#25D366"
-                  fill-rule="evenodd"
-                />
-              </g>
+          <span id="wa-btn-icon" class="flex items-center justify-center shrink-0">
+            <!-- SVG Gembok (Default Terkunci) -->
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
           </span>
           <span>Kirim Hasil ke WhatsApp</span>
         </a>
+
+        <p
+          id="dashboard-action-status"
+          class="text-xs sm:text-sm font-bold text-ink/55 leading-relaxed mt-3 empty:hidden"
+          aria-live="polite"
+        ></p>
       </section>
 
-      <!-- ===================== QUIZ SCREEN ===================== -->
+      <!-- ===================== LAYAR KUIS ===================== -->
       <section
         id="quiz-screen"
         class="hidden bg-card rounded-3xl border border-border shadow-soft p-5 sm:p-6"
       >
-        <!-- Quiz Header -->
+        <!-- Header Kuis -->
         <div class="flex items-center justify-between gap-1.5 sm:gap-3 mb-4 pb-3 border-b border-border">
           <div class="flex items-center gap-1.5 sm:gap-2">
             <button
@@ -419,7 +369,7 @@
           </div>
         </div>
 
-        <!-- Progress Bar -->
+        <!-- Bar Progress -->
         <div class="w-full bg-bg rounded-full h-1.5 mb-5 overflow-hidden">
           <div
             id="progress-bar"
@@ -428,7 +378,7 @@
           ></div>
         </div>
 
-        <!-- Question -->
+        <!-- Pertanyaan -->
         <div id="question-box" class="mb-5 text-left">
           <span
             id="question-number"
@@ -444,12 +394,12 @@
           </p>
         </div>
 
-        <!-- Options -->
+        <!-- Pilihan Jawaban -->
         <div id="options-container" class="space-y-3 mb-5">
-          <!-- Options rendered by JS -->
+          <!-- Pilihan Jawaban dirender oleh JS -->
         </div>
 
-        <!-- Explanation card (hidden until answered) -->
+        <!-- Kartu penjelasan (disembunyikan sampai dijawab) -->
         <div
           id="explanation-box"
           class="hidden slide-in bg-bg border border-border rounded-2xl p-4 mb-4 text-left"
@@ -463,7 +413,7 @@
           ></p>
         </div>
 
-        <!-- Next button (hidden until answered) -->
+        <!-- Tombol selanjutnya (disembunyikan sampai dijawab) -->
         <button
           id="next-btn"
           class="hidden slide-in w-full bg-primary hover:bg-primary-dark text-white font-bold text-base py-3.5 rounded-2xl shadow-button transition-all duration-200 active:scale-[0.98]"
@@ -472,7 +422,7 @@
         </button>
       </section>
 
-      <!-- ===================== RESULT SCREEN ===================== -->
+      <!-- ===================== LAYAR HASIL ===================== -->
       <section
         id="result-screen"
         class="hidden bg-card rounded-3xl border border-border shadow-soft p-5 sm:p-6 text-center"
@@ -501,14 +451,14 @@
           class="text-ink/75 text-sm sm:text-base mb-5 leading-relaxed"
         ></p>
 
-        <!-- Score -->
+        <!-- Skor -->
         <div class="bg-bg border border-border/70 rounded-2xl p-5 mb-5 text-center shadow-inner">
           <p class="text-xs font-semibold text-ink/50 uppercase tracking-wider mb-1">Total Skor</p>
           <p id="final-score" class="text-5xl font-extrabold text-primary tracking-tight">0</p>
           <p class="text-[10px] font-bold text-ink/40 uppercase tracking-wider mt-1.5">dari 100</p>
         </div>
 
-        <!-- Stats -->
+        <!-- Statistik -->
         <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
           <div class="bg-success/5 border border-success/10 rounded-xl p-3 flex flex-col justify-between items-center">
             <p class="text-lg sm:text-xl font-extrabold text-success" id="correct-count">
@@ -531,7 +481,7 @@
           </div>
         </div>
 
-        <!-- Review -->
+        <!-- Tinjauan -->
         <div class="text-left mb-6">
           <p class="text-sm font-bold text-ink/80 mb-3 text-center">
             📋 Review Jawaban
@@ -544,14 +494,18 @@
 
         <button
           id="back-to-dashboard-btn"
-          class="w-full bg-primary hover:bg-primary-dark text-white font-bold text-base py-3.5 rounded-2xl shadow-button transition-all duration-200 active:scale-[0.98]"
+          type="button"
+          class="w-full min-h-12 bg-primary hover:bg-primary-dark text-white font-bold text-sm sm:text-base py-3.5 px-4 rounded-2xl shadow-button transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
         >
-          Kembali ke Dashboard
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <path clip-rule="evenodd" d="M31.106,15H3.278l8.325-8.293c0.391-0.391,0.391-1.024,0-1.414c-0.391-0.391-1.024-0.391-1.414,0l-9.9,9.899c-0.385,0.385-0.385,1.029,0,1.414l9.9,9.9c0.391,0.391,1.024,0.391,1.414,0c0.391-0.391,0.391-1.024,0-1.414L3.278,17h27.828c0.552,0,1-0.448,1-1C32.106,15.448,31.658,15,31.106,15z" fill="#ffffff" fill-rule="evenodd" id="Arrow_Back"></path>
+          </svg>
+          <span class="whitespace-nowrap">Kembali ke Dashboard</span>
         </button>
       </section>
     </main>
 
-    <!-- ===================== CUSTOM CONFIRM MODAL ===================== -->
+    <!-- ===================== MODAL KONFIRMASI KUSTOM ===================== -->
     <div
       id="confirm-modal"
       class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 opacity-0"
@@ -582,7 +536,7 @@
       </div>
     </div>
 
-    <!-- ===================== EXIT CONFIRM MODAL ===================== -->
+    <!-- ===================== MODAL KONFIRMASI KELUAR ===================== -->
     <div
       id="exit-confirm-modal"
       class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 opacity-0"
@@ -613,8 +567,10 @@
       </div>
     </div>
 
-    <!-- Scripts (order matters: data first, then logic) -->
+    <!-- Script (urutan penting: data dulu, baru logika) -->
     <script src="quiz-data.js"></script>
+    <script src="result-gate.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

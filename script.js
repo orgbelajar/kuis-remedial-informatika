@@ -1,6 +1,6 @@
 // ============================================================
 //  LOGIKA KUIS REMEDIAL INFORMATIKA KELAS 8
-//  Phase 4: Timer, Anti-Refresh, Expandable History, Duration
+//  Tahap 4: Timer, Anti-Refresh, Riwayat yang Bisa Diperluas, Durasi
 // ------------------------------------------------------------
 //  Tergantung pada: quizData (dari quiz-data.js)
 // ============================================================
@@ -8,25 +8,27 @@
 (function () {
   "use strict";
 
-  // ---------- Constants ----------
-  const STORAGE_KEY = "remedialSession";      // localStorage (profil + history permanen)
+  // ---------- Konstanta ----------
+  const STORAGE_KEY = "remedialSession";      // localStorage (profil + riwayat permanen)
   const QUIZ_STATE_KEY = "remedialQuizState"; // sessionStorage (anti-refresh)
-  const RESULT_STATE_KEY = "remedialResultState"; // sessionStorage (result-state refresh survival)
+  const RESULT_STATE_KEY = "remedialResultState"; // sessionStorage (mempertahankan status hasil kuis saat refresh)
   const PASSING_GRADE = 70;                   // KKM
   const WA_NUMBER = "6281412397588";           // Kak Nabil
   const OPTION_LETTERS = ["A", "B", "C", "D"];
+  const resultGate = window.RemedialResultGate;
 
-  // ---------- Quiz State ----------
+  // ---------- Status Kuis ----------
   let currentQuestionIndex = 0;   // Indeks soal yang sedang ditampilkan
   let score = 0;                  // Jumlah jawaban benar (0..totalQuestions)
-  const answers = [];             // Menyimpan indeks pilihan siswa per soal (untuk review)
+  const answers = [];             // Menyimpan indeks pilihan siswa per soal (untuk ulasan)
   let isAnswered = false;         // Mencegah mengubah jawaban setelah memilih
 
-  // ---------- Timer State (Phase 4) ----------
+  // ---------- Status Timer (Tahap 4) ----------
   let quizStartTime = 0;          // Date.now() saat kuis dimulai/dilanjutkan
-  let timerInterval = null;       // referensi setInterval
+  let timerInterval = null;       // Referensi setInterval
+  let currentResultMeta = null;   // Metadata percobaan yang sedang tampil di Layar Hasil
 
-  // ---------- DOM References ----------
+  // ---------- Referensi DOM ----------
   const screens = {
     login:     document.getElementById("login-screen"),
     dashboard: document.getElementById("dashboard-screen"),
@@ -35,26 +37,30 @@
   };
 
   const els = {
-    // Login
+    // Masuk (Login)
     loginForm:    document.getElementById("login-form"),
     nameInput:    document.getElementById("name-input"),
     nameError:    document.getElementById("name-error"),
     loginBtn:     document.getElementById("login-btn"),
-    // Dashboard
+    // Beranda (Dashboard)
     greetingName:       document.getElementById("greeting-name"),
     dashboardBestScore: document.getElementById("dashboard-best-score"),
     statusBadge:        document.getElementById("status-badge"),
     historyList:        document.getElementById("history-list"),
     startRemedialBtn:   document.getElementById("start-remedial-btn"),
+    viewLastResultBtn:  document.getElementById("view-last-result-btn"),
+    dashboardScreenshotBtn: document.getElementById("dashboard-screenshot-btn"),
+    dashboardActionStatus: document.getElementById("dashboard-action-status"),
     passingGradeInfo:   document.getElementById("passing-grade-info"),
     waBtn:              document.getElementById("wa-btn"),
+    waBtnIcon:          document.getElementById("wa-btn-icon"),
     waInfoText:         document.getElementById("wa-info-text"),
     confirmModal:       document.getElementById("confirm-modal"),
     confirmModalCard:   document.getElementById("confirm-modal-card"),
     confirmCancelBtn:   document.getElementById("confirm-cancel-btn"),
     confirmStartBtn:    document.getElementById("confirm-start-btn"),
     confirmModalTotalQuestions: document.getElementById("confirm-modal-total-questions"),
-    // Quiz
+    // Kuis
     quizTimer:       document.getElementById("quiz-timer"),
     quizExitBtn:     document.getElementById("quiz-exit-btn"),
     exitConfirmModal: document.getElementById("exit-confirm-modal"),
@@ -70,7 +76,7 @@
     optionsContainer:document.getElementById("options-container"),
     explanationBox:  document.getElementById("explanation-box"),
     explanationText: document.getElementById("explanation-text"),
-    // Result
+    // Hasil
     resultEmoji:           document.getElementById("result-emoji"),
     resultTitle:           document.getElementById("result-title"),
     resultStatusMessage:   document.getElementById("result-status-message"),
@@ -83,7 +89,7 @@
   };
 
   // ============================================================
-  //  DATA LAYER (localStorage) — session permanen
+  //  LAPISAN DATA (localStorage) — sesi permanen
   // ============================================================
 
   // Baca & validasi session. Return null kalau tidak ada / rusak.
@@ -204,7 +210,7 @@
   }
 
   // Simpan state hasil kuis ke sessionStorage (supaya bertahan saat di-refresh di Result Screen)
-  function saveResultState(finalScore, correct, wrong, duration, answersArr) {
+  function saveResultState(finalScore, correct, wrong, duration, answersArr, resultMeta) {
     try {
       const state = {
         finalScore: finalScore,
@@ -212,6 +218,7 @@
         wrong: wrong,
         duration: duration,
         answers: [...answersArr],
+        resultMeta: resultMeta || null,
       };
       sessionStorage.setItem(RESULT_STATE_KEY, JSON.stringify(state));
     } catch (e) {
@@ -244,7 +251,7 @@
 
 
   // ============================================================
-  //  HELPERS
+  //  FUNGSI PEMBANTU (HELPERS)
   // ============================================================
 
   // Escape karakter HTML agar aman dimasukkan ke innerHTML
@@ -257,7 +264,7 @@
       .replace(/'/g, "&#039;");
   }
 
-  // Convert simple markdown (**bold** and *italic*) to HTML after escaping
+  // Mengubah markdown sederhana (**tebal** dan *miring*) menjadi HTML setelah melakukan proses escape
   function formatMarkdown(text) {
     if (typeof text !== "string") return "";
     return escapeHtml(text)
@@ -265,7 +272,7 @@
       .replace(/\*(.*?)\*/g, "<em>$1</em>");
   }
 
-  // Convert only simple italic (*italic*) to HTML after escaping, disabling bold
+  // Mengubah hanya format miring (*miring*) menjadi HTML setelah proses escape, menonaktifkan format tebal
   function formatItalicOnly(text) {
     if (typeof text !== "string") return "";
     return escapeHtml(text)
@@ -273,7 +280,7 @@
       .replace(/\*(.*?)\*/g, "<em>$1</em>");
   }
 
-  // Title Case + normalisasi spasi: "nabil  ihsan" -> "Nabil Ihsan"
+  // Format Huruf Kapital per Kata (Title Case) + normalisasi spasi: "nabil  ihsan" -> "Nabil Ihsan"
   function toTitleCase(str) {
     return str
       .trim()
@@ -283,7 +290,7 @@
       .join(" ");
   }
 
-  // Format durasi MM:SS dari milidetik (untuk display live & result)
+  // Format durasi MM:SS dari milidetik (untuk tampilan langsung & hasil)
   function formatTimer(ms) {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
     const m = Math.floor(totalSeconds / 60);
@@ -303,7 +310,7 @@
     return parts.join(" ");
   }
 
-  // Bangun array soal salah dari jawaban siswa: [{no, selected, correct}]
+  // Susun daftar soal yang salah berdasarkan jawaban siswa: [{no, selected, correct}]
   function buildWrongQuestions(answersArr) {
     if (!Array.isArray(answersArr)) return [];
     const wrong = [];
@@ -322,7 +329,7 @@
   }
 
   // ============================================================
-  //  SCREEN NAVIGATION
+  //  NAVIGASI LAYAR
   // ============================================================
 
   function showScreen(name) {
@@ -333,14 +340,14 @@
     const target = screens[name];
     if (!target) return;
     target.classList.remove("hidden");
-    void target.offsetWidth; // reflow agar animasi ulang
+    void target.offsetWidth; // Pembaruan tata letak (reflow) agar animasi diulang
     target.classList.add("fade-in");
     // Scroll ke atas tiap ganti layar
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // ============================================================
-  //  TIMER (Phase 4)
+  //  PENGHITUNG WAKTU (TIMER - Tahap 4)
   // ============================================================
 
   // Mulai penghitung waktu. Pakai quizStartTime yang sudah ada (untuk resume).
@@ -359,7 +366,7 @@
     }
   }
 
-  // Update tampilan timer di quiz header (MM:SS)
+  // Perbarui tampilan timer di header kuis (MM:SS)
   function updateTimerDisplay() {
     if (!els.quizTimer) return;
     const elapsed = Date.now() - quizStartTime;
@@ -384,7 +391,7 @@
     showDashboard();
   }
 
-  // Real-time Title Case preview + toggle tombol Masuk
+  // Pratinjau kapitalisasi kata secara langsung + aktifkan/nonaktifkan tombol Masuk
   function handleNameInput() {
     let raw = els.nameInput.value;
     const isValid = raw.trim() !== "";
@@ -428,14 +435,14 @@
     const bestScore = computeBestScore(session.history);
     const hasPassed = bestScore >= PASSING_GRADE;
 
-    // Greeting (nama di-truncate via CSS, tooltip penuh)
+    // Sapaan (nama dipotong menggunakan CSS, deskripsi singkat (tooltip) penuh)
     els.greetingName.textContent = session.name;
     els.greetingName.setAttribute("title", session.name);
 
-    // Best score
+    // Skor terbaik
     els.dashboardBestScore.textContent = bestScore;
 
-    // Status badge
+    // Lencana status
     if (bestScore === 0) {
       els.statusBadge.textContent = "BELUM MENCOBA";
       els.statusBadge.className =
@@ -454,26 +461,73 @@
 
     // Tombol aksi dinamis
     if (hasPassed) {
-      els.startRemedialBtn.classList.add("hidden");
       if (els.passingGradeInfo) els.passingGradeInfo.classList.add("hidden");
       els.waBtn.classList.remove("hidden");
       if (els.waInfoText) els.waInfoText.classList.remove("hidden");
-      // Cari durasi dari percobaan yang lulus (ambil yang pertama lulus)
-      const passedAttempt = session.history.find((h) => h.score >= PASSING_GRADE);
-      const bestDuration = passedAttempt ? passedAttempt.duration : null;
-      els.waBtn.href = buildWhatsAppUrl(session.name, bestScore, bestDuration);
+      updateDashboardWhatsAppGate(session);
+      // Siswa lulus: sembunyikan tombol mulai, tampilkan "Lihat Hasil Terakhir"
+      els.startRemedialBtn.classList.add("hidden");
+      if (els.viewLastResultBtn) els.viewLastResultBtn.classList.remove("hidden");
     } else {
+      els.startRemedialBtn.textContent = "Mulai Remedial";
       els.startRemedialBtn.classList.remove("hidden");
+      if (els.viewLastResultBtn) els.viewLastResultBtn.classList.add("hidden");
+      if (els.dashboardScreenshotBtn) els.dashboardScreenshotBtn.classList.add("hidden");
+      if (els.dashboardActionStatus) els.dashboardActionStatus.textContent = "";
       if (els.passingGradeInfo) els.passingGradeInfo.classList.remove("hidden");
       els.waBtn.classList.add("hidden");
       if (els.waInfoText) els.waInfoText.classList.add("hidden");
+      setWhatsAppLinkState(els.waBtn, false, "#");
     }
 
     showScreen("dashboard");
   }
 
-  // Render riwayat dengan toggle-expandable inline (menggantikan eval modal).
-  // Setiap percobaan punya baris utama (klik untuk toggle) + panel detail.
+  // Kembali ke Layar Hasil dari Dashboard tanpa mengerjakan ulang kuis.
+  // Menggunakan data percobaan terakhir dari riwayat sesi.
+  function showLastResult() {
+    const session = loadSession();
+    if (!session || !Array.isArray(session.history) || session.history.length === 0) {
+      return; // Tidak ada data hasil
+    }
+
+    // Ambil percobaan terakhir (indeks terakhir = terbaru)
+    const lastAttempt = session.history[session.history.length - 1];
+    if (!lastAttempt) return;
+
+    const total = quizData.length || 1;
+    const finalScore = clampScore(Number(lastAttempt.score) || 0);
+    const duration = Math.max(0, Math.round(Number(lastAttempt.duration) || 0));
+
+    // Hitung ulang jumlah benar/salah
+    let correct = lastAttempt.correctCount;
+    let wrong = lastAttempt.wrongCount;
+    if (correct === null || correct === undefined || wrong === null || wrong === undefined) {
+      // Pilihan cadangan (fallback) dari skor
+      correct = Math.round((finalScore / 100) * total);
+      wrong = total - correct;
+    }
+
+    // Susun ulang array jawaban untuk renderReview()
+    answers.length = 0;
+    if (Array.isArray(lastAttempt.answers)) {
+      lastAttempt.answers.forEach((a) => answers.push(a));
+    }
+
+    // Buat metadata hasil
+    const resultMeta = buildResultAttemptMeta(
+      session.name,
+      lastAttempt.attempt,
+      finalScore,
+      duration,
+      lastAttempt.date
+    );
+
+    renderResultUI(finalScore, correct, wrong, duration, resultMeta);
+  }
+
+  // Merender riwayat dengan tampilan buka-tutup baris (menggantikan modal evaluasi).
+  // Setiap percobaan memiliki baris utama (klik untuk beralih tampilan) + panel rincian.
   function renderHistoryExpandable(session) {
     if (!session.history || session.history.length === 0) {
       els.historyList.innerHTML =
@@ -490,7 +544,7 @@
       const color = passed ? "text-success" : "text-ink/70";
       const badge = passed ? "bg-success/10 text-success" : "bg-border text-ink/50";
 
-      // Tentukan correctCount / wrongCount / wrongQuestions (komputasi ulang dari answers untuk data lama)
+      // Tentukan jumlah benar / jumlah salah / rincian soal salah (komputasi ulang dari jawaban untuk data lama)
       let correctCount = h.correctCount;
       let wrongCount = h.wrongCount;
       let wrongQuestions = h.wrongQuestions;
@@ -517,7 +571,7 @@
       headerLi.dataset.passed = String(passed);
       headerLi.innerHTML =
         `<div class="text-sm flex-1 min-w-0">` +
-          `<span class="font-bold text-ink/80">Percobaan ${escapeHtml(String(h.attempt))}</span>` +
+          `<span class="font-bold text-ink/80">Percobaan ke-${escapeHtml(String(h.attempt))}</span>` +
           `<span class="block text-[11px] text-ink/40 font-medium mt-0.5">${escapeHtml(h.date || "")}</span>` +
         `</div>` +
         `<span class="text-base font-extrabold ${color} whitespace-nowrap ml-2 flex items-center gap-1.5">` +
@@ -531,7 +585,7 @@
       detailLi.dataset.attempt = String(h.attempt);
 
       const durationText = (h.duration !== null && h.duration !== undefined)
-        ? formatDurationHuman(h.duration)
+        ? formatTimer(h.duration * 1000)
         : "N/A";
 
       let detailHTML =
@@ -596,8 +650,207 @@
     return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
   }
 
+  function buildResultAttemptMeta(name, attempt, scoreValue, duration, date) {
+    const meta = {
+      name: name || "Siswa",
+      attempt: Number(attempt) || 0,
+      score: clampScore(Number(scoreValue) || 0),
+      duration: Math.max(0, Math.round(Number(duration) || 0)),
+      date: date || todayID(),
+    };
+    meta.attemptKey = resultGate
+      ? resultGate.buildAttemptKey(meta)
+      : `${meta.name}|attempt:${meta.attempt}|score:${meta.score}|duration:${meta.duration}|date:${meta.date}`;
+    return meta;
+  }
+
+  function getBestPassedAttempt(session) {
+    if (!session || !Array.isArray(session.history)) return null;
+    return session.history.reduce((best, attempt) => {
+      if (!attempt || attempt.score < PASSING_GRADE) return best;
+      if (!best) return attempt;
+      if (attempt.score > best.score) return attempt;
+      return best;
+    }, null);
+  }
+
+  function hasScreenshotForAttempt(attemptKey) {
+    if (!resultGate || !attemptKey) return false;
+    try {
+      return resultGate.hasScreenshotForAttempt(localStorage, attemptKey);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function readScreenshotGateStatus() {
+    if (!resultGate) return null;
+    try {
+      return resultGate.readScreenshotStatus(localStorage);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveScreenshotForAttempt(attemptKey) {
+    if (!resultGate || !attemptKey) return;
+    try {
+      resultGate.saveScreenshotStatus(localStorage, attemptKey);
+    } catch (e) {
+      throw new Error("Status screenshot tidak bisa disimpan di perangkat ini.");
+    }
+  }
+
+  function clearScreenshotGate() {
+    if (!resultGate) return;
+    try {
+      resultGate.clearScreenshotStatus(localStorage);
+    } catch (e) {
+      /* abaikan */
+    }
+  }
+
+  function setWhatsAppLinkState(link, enabled, url) {
+    if (!link) return;
+    const iconContainer = els.waBtnIcon;
+
+    if (enabled) {
+      link.href = url;
+      link.setAttribute("aria-disabled", "false");
+      link.removeAttribute("tabindex");
+      link.removeAttribute("title");
+
+      // Hapus opacity redup, aktifkan warna penuh
+      link.classList.remove("opacity-40");
+      link.classList.add("opacity-100");
+
+      // Ganti ikon menjadi WhatsApp Bootstrap (Aktif)
+      if (iconContainer) {
+        iconContainer.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+          </svg>
+        `;
+      }
+    } else {
+      link.href = "#";
+      link.setAttribute("aria-disabled", "true");
+      link.setAttribute("tabindex", "-1");
+      link.setAttribute("title", "Ambil screenshot hasil terlebih dahulu.");
+
+      // Tambahkan opacity redup
+      link.classList.remove("opacity-100");
+      link.classList.add("opacity-40");
+
+      // Ganti ikon menjadi Gembok (Terkunci)
+      if (iconContainer) {
+        iconContainer.innerHTML = `
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        `;
+      }
+    }
+  }
+
+  function updateDashboardWhatsAppGate(session) {
+    if (!els.waBtn) return false;
+    const status = readScreenshotGateStatus();
+    let matchedMeta = null;
+    if (status && status.attemptKey) {
+      for (const attempt of session.history || []) {
+        if (!attempt || attempt.score < PASSING_GRADE) continue;
+        const meta = buildResultAttemptMeta(
+          session.name,
+          attempt.attempt,
+          attempt.score,
+          attempt.duration,
+          attempt.date
+        );
+        if (meta.attemptKey === status.attemptKey) {
+          matchedMeta = meta;
+          break;
+        }
+      }
+    }
+
+    const ready = Boolean(matchedMeta);
+    const fallbackAttempt = getBestPassedAttempt(session);
+    const fallbackMeta = fallbackAttempt
+      ? buildResultAttemptMeta(session.name, fallbackAttempt.attempt, fallbackAttempt.score, fallbackAttempt.duration, fallbackAttempt.date)
+      : null;
+    const metaForMessage = matchedMeta || fallbackMeta;
+
+    setWhatsAppLinkState(
+      els.waBtn,
+      ready,
+      metaForMessage ? buildWhatsAppUrl(session.name, metaForMessage.score, metaForMessage.duration) : "#"
+    );
+
+    // Tampilkan tombol Screenshot hanya jika siswa sudah lulus
+    if (els.dashboardScreenshotBtn) els.dashboardScreenshotBtn.classList.remove("hidden");
+
+    if (els.waInfoText) {
+      const textNode = els.waInfoText.querySelector("span:last-child");
+      if (textNode) {
+        textNode.innerHTML = ready
+          ? "Screenshot hasil sudah tersimpan. Silakan kirim hasil ke WhatsApp Kak Nabil dengan tombol di bawah."
+          : "Setelah lulus remedial, wajib screenshot hasil remedial terlebih dahulu menggunakan tombol di bawah.";
+      }
+    }
+    return ready;
+  }
+
+  function downloadCanvasAsPng(canvas, filename) {
+    return new Promise((resolve, reject) => {
+      if (canvas.toBlob) {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("Canvas gagal dibuat menjadi file PNG."));
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.download = filename;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          resolve();
+        }, "image/png");
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = canvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      resolve();
+    });
+  }
+
+  function openWhatsAppAndReset(link) {
+    if (!link || link.getAttribute("aria-disabled") === "true") return false;
+    const url = link.href;
+    const opened = window.open(url, "_blank");
+    if (!opened) return false;
+    try {
+      opened.opener = null;
+    } catch (e) {
+      /* abaikan */
+    }
+    clearScreenshotGate();
+    const session = loadSession();
+    if (session) updateDashboardWhatsAppGate(session);
+    return true;
+  }
+
   // ============================================================
-  //  QUIZ (render, answer, next)
+  //  KUIS (render, jawab, selanjutnya)
   // ============================================================
 
   function startQuiz() {
@@ -787,7 +1040,7 @@
   }
 
   // ============================================================
-  //  RESULT
+  //  HASIL
   // ============================================================
 
   function showResult() {
@@ -803,21 +1056,24 @@
     const wrong = total - correct;
     const finalScore = clampScore((correct / (total || 1)) * 100);
     const wrongQuestions = buildWrongQuestions(answers);
+    let resultMeta = buildResultAttemptMeta("Siswa", 0, finalScore, duration, todayID());
 
     // ---- Simpan attempt ke session (dengan field baru Phase 4) ----
     const session = loadSession();
     if (session) {
       const attemptNumber = session.history.length + 1;
+      const attemptDate = todayID();
       session.history.push({
         attempt: attemptNumber,
         score: finalScore,
-        date: todayID(),
+        date: attemptDate,
         duration: duration,
         correctCount: correct,
         wrongCount: wrong,
         wrongQuestions: wrongQuestions,
         answers: [...answers],
       });
+      resultMeta = buildResultAttemptMeta(session.name, attemptNumber, finalScore, duration, attemptDate);
       saveSession(session); // bestScore di-recompute di sini
     }
 
@@ -825,14 +1081,15 @@
     clearQuizState();
 
     // ---- Simpan state hasil ke sessionStorage agar refresh tetap berada di result screen ----
-    saveResultState(finalScore, correct, wrong, duration, answers);
+    saveResultState(finalScore, correct, wrong, duration, answers, resultMeta);
 
     // ---- Render tampilan hasil ----
-    renderResultUI(finalScore, correct, wrong, duration);
+    renderResultUI(finalScore, correct, wrong, duration, resultMeta);
   }
 
-  function renderResultUI(finalScore, correct, wrong, duration) {
+  function renderResultUI(finalScore, correct, wrong, duration, resultMeta) {
     const hasPassed = finalScore >= PASSING_GRADE;
+    currentResultMeta = resultMeta || buildResultAttemptMeta("Siswa", 0, finalScore, duration, todayID());
 
     // ---- Ucapan dinamis berdasarkan skor ----
     let emoji, title, statusMsg;
@@ -873,7 +1130,7 @@
 
       const item = document.createElement("div");
       item.className =
-        `flex items-start gap-3 p-3.5 rounded-2xl border shadow-sm transition-all duration-200 ` +
+        `flex items-center gap-3 p-3.5 rounded-2xl border shadow-sm transition-all duration-200 ` +
         (isCorrect
           ? "bg-success/5 border-success/15 text-success"
           : "bg-error/5 border-error/15 text-error");
@@ -899,18 +1156,127 @@
     });
   }
 
+  async function handleDashboardScreenshot() {
+    if (!els.dashboardScreenshotBtn || !els.dashboardActionStatus) return;
+    const session = loadSession();
+    if (!session) return;
+
+    const passedAttempt = getBestPassedAttempt(session);
+    if (!passedAttempt) {
+      els.dashboardActionStatus.textContent = "Data hasil remedial belum siap.";
+      els.dashboardActionStatus.className = "text-xs sm:text-sm font-bold text-error leading-relaxed mt-3 empty:hidden";
+      return;
+    }
+
+    if (typeof window.htmlToImage === "undefined") {
+      els.dashboardActionStatus.textContent = "Library screenshot gagal dimuat. Coba muat ulang halaman.";
+      els.dashboardActionStatus.className = "text-xs sm:text-sm font-bold text-error leading-relaxed mt-3 empty:hidden";
+      return;
+    }
+
+    const originalBtnHTML = els.dashboardScreenshotBtn.innerHTML;
+    const attemptMeta = buildResultAttemptMeta(
+      session.name,
+      passedAttempt.attempt,
+      passedAttempt.score,
+      passedAttempt.duration,
+      passedAttempt.date
+    );
+
+    try {
+      // Sebelum memproses: Tunggu font selesai dimuat
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+
+      const dashScreen = screens.dashboard;
+      const cardBgColor = window.getComputedStyle(dashScreen).backgroundColor || "#ffffff";
+
+      // html-to-image mengambil clone DOM secara sinkron di awal panggilan ini
+      const blobPromise = window.htmlToImage.toBlob(dashScreen, {
+        pixelRatio: Math.max(3, window.devicePixelRatio || 2), // Resolusi tajam
+        backgroundColor: cardBgColor,
+        style: {
+          transform: "none",
+          margin: "0",
+        }
+      });
+
+      // Setelah proses clone dimulai, baru ubah status loading di layar asli
+      els.dashboardScreenshotBtn.disabled = true;
+      const textSpan = els.dashboardScreenshotBtn.querySelector("span:last-child");
+      if (textSpan) {
+        textSpan.textContent = "Menyiapkan Screenshot...";
+        textSpan.classList.add("whitespace-nowrap");
+      }
+      els.dashboardActionStatus.textContent = "Sedang memproses screenshot (kualitas tinggi)...";
+      els.dashboardActionStatus.className = "text-xs sm:text-sm font-bold text-primary leading-relaxed mt-3 empty:hidden";
+
+      const blob = await blobPromise;
+
+      if (!blob) {
+        throw new Error("Blob gambar kosong.");
+      }
+
+      const filename = resultGate.buildScreenshotFileName({
+        name: attemptMeta.name,
+        date: attemptMeta.date,
+      });
+
+      await downloadCanvasAsPng({ toBlob: (cb) => cb(blob) }, filename);
+      saveScreenshotForAttempt(attemptMeta.attemptKey);
+
+      els.dashboardActionStatus.textContent = "Screenshot berhasil diunduh: " + filename;
+      els.dashboardActionStatus.className = "text-xs sm:text-sm font-bold text-success leading-relaxed mt-3 empty:hidden";
+
+      // Perbarui status gate Dashboard
+      updateDashboardWhatsAppGate(session);
+    } catch (err) {
+      els.dashboardActionStatus.textContent = "Gagal mengambil screenshot. Silakan coba lagi.";
+      els.dashboardActionStatus.className = "text-xs sm:text-sm font-bold text-error leading-relaxed mt-3 empty:hidden";
+      console.error("html-to-image capture error:", err);
+    } finally {
+      els.dashboardScreenshotBtn.disabled = false;
+      if (els.dashboardScreenshotBtn) {
+        els.dashboardScreenshotBtn.innerHTML = originalBtnHTML;
+      }
+    }
+  }
+
+  function handleDashboardWhatsAppClick(e) {
+    if (!els.waBtn || els.waBtn.getAttribute("aria-disabled") === "true") {
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    const opened = openWhatsAppAndReset(els.waBtn);
+
+    // Selalu re-render Dashboard gate state setelah reset
+    const session = loadSession();
+    if (session) updateDashboardWhatsAppGate(session);
+
+    if (els.dashboardActionStatus) {
+      els.dashboardActionStatus.textContent = opened
+        ? "Status screenshot di-reset. Silakan screenshot ulang jika ingin mengirim lagi."
+        : "WhatsApp gagal dibuka. Izinkan pop-up browser lalu coba lagi.";
+      els.dashboardActionStatus.className = opened
+        ? "text-xs sm:text-sm font-bold text-ink/55 leading-relaxed mt-3 empty:hidden"
+        : "text-xs sm:text-sm font-bold text-error leading-relaxed mt-3 empty:hidden";
+    }
+  }
+
   // ============================================================
-  //  ENTRY POINT / WIRING
+  //  TITIK MASUK / PENGHUBUNG KODE
   // ============================================================
 
-  // ---------- Custom Confirm Modal Handlers ----------
+  // ---------- Penangan Modal Konfirmasi Kustom ----------
   function openConfirmModal() {
     const modal = els.confirmModal;
     const card = els.confirmModalCard;
     if (!modal || !card) return;
 
     modal.classList.remove("hidden");
-    // Force reflow
+    // Paksa reflow (pembaruan tata letak)
     void modal.offsetWidth;
 
     modal.classList.add("modal-active");
@@ -933,7 +1299,7 @@
     }, 300);
   }
 
-  // ---------- Custom Exit Confirm Modal Handlers ----------
+  // ---------- Penangan Modal Konfirmasi Keluar Kustom ----------
   function openExitConfirmModal() {
     const modal = els.exitConfirmModal;
     const card = els.exitConfirmModalCard;
@@ -976,10 +1342,11 @@
     setTimeout(() => els.nameInput && els.nameInput.focus(), 200);
   }
 
-  // Event bindings
+  // Pengikatan Event (Event bindings)
   els.loginForm.addEventListener("submit", handleLogin);
   els.nameInput.addEventListener("input", handleNameInput);
   els.startRemedialBtn.addEventListener("click", openConfirmModal);
+  if (els.viewLastResultBtn) els.viewLastResultBtn.addEventListener("click", showLastResult);
   els.confirmCancelBtn.addEventListener("click", closeConfirmModal);
   els.confirmStartBtn.addEventListener("click", () => {
     closeConfirmModal();
@@ -994,12 +1361,14 @@
     showDashboard();
   });
   els.nextBtn.addEventListener("click", nextQuestion);
+  if (els.dashboardScreenshotBtn) els.dashboardScreenshotBtn.addEventListener("click", handleDashboardScreenshot);
+  if (els.waBtn) els.waBtn.addEventListener("click", handleDashboardWhatsAppClick);
   els.backToDashboardBtn.addEventListener("click", () => {
     clearResultState();
     showDashboard();
   });
 
-  // Klik riwayat percobaan → toggle panel detail inline (event delegation)
+  // Klik riwayat percobaan → beralih panel detail inline (delegasi event)
   els.historyList.addEventListener("click", (e) => {
     const headerLi = e.target.closest("li[data-attempt]");
     if (!headerLi) return;
@@ -1023,7 +1392,7 @@
     stopTimer();
   });
 
-  // ---------- Theme Switcher Logic ----------
+  // ---------- Logika Pengalih Tema ----------
   const themeButtons = {
     light: document.getElementById("theme-light-btn"),
     dark:  document.getElementById("theme-dark-btn"),
@@ -1047,10 +1416,9 @@
       }
     });
 
-    // Swap logo sekolah: gunakan versi dark saat dark mode aktif
-    const logoSrc = themeName === "dark" ? "logo-sekolah-dark.svg" : "logo-sekolah.svg";
+    // Gunakan logo-sekolah.svg untuk semua tema
     document.querySelectorAll("img[data-school-logo]").forEach((img) => {
-      img.src = logoSrc;
+      img.src = "logo-sekolah.svg";
     });
   }
 
@@ -1064,7 +1432,7 @@
   const currentTheme = localStorage.getItem("kuis-theme") || "light";
   applyTheme(currentTheme);
 
-  // Update total questions in instruction modal dynamically
+  // Perbarui jumlah soal dalam modal instruksi secara dinamis
   if (els.confirmModalTotalQuestions && typeof quizData !== "undefined") {
     els.confirmModalTotalQuestions.textContent = `${quizData.length} Soal Pilihan Ganda`;
   }
@@ -1081,7 +1449,8 @@
       pendingResult.finalScore,
       pendingResult.correct,
       pendingResult.wrong,
-      pendingResult.duration
+      pendingResult.duration,
+      pendingResult.resultMeta
     );
   } else if (pendingQuiz) {
     resumeQuiz(pendingQuiz);
